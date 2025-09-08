@@ -1,0 +1,25 @@
+{% extends 'intranet/base.html' %}
+{% load static %}
+{% block title %}Liste des Sites{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Liste des Sites</h2>
+
+    {% if sites %}
+    <div class="list-group">
+        {% for site in sites %}
+        <a href="{% url 'site_detail' site.id %}" class="list-group-item list-group-item-action mb-2">
+            <h5 class="mb-1">{{ site.name }}</h5>
+            <p class="mb-1 text-muted">Projet : {{ site.project.name }}</p>
+            <small>Localisation : {{ site.location }}</small>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info" role="alert">
+        Aucun site n'est disponible pour vous pour le moment.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

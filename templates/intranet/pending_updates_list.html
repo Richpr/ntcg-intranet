@@ -1,0 +1,41 @@
+{% extends "intranet/base.html" %}
+
+{% block title %}Demandes de mise à jour en attente{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col">
+        <h2 class="mb-4">Demandes de mise à jour de profil en attente</h2>
+        {% if pending_updates %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">Utilisateur</th>
+                        <th scope="col">Rôle actuel</th>
+                        <th scope="col">Département actuel</th>
+                        <th scope="col">Date de soumission</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for update in pending_updates %}
+                    <tr>
+                        <td>{{ update.user.get_full_name }}</td>
+                        <td>{{ update.user.job_role }}</td>
+                        <td>{{ update.user.departement }}</td>
+                        <td>{{ update.submitted_at|date:"d M Y, H:i" }}</td>
+                        <td>
+                            <a href="{% url 'review_profile_update' update.id %}" class="btn btn-sm btn-info">Voir les détails</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="alert alert-info">Aucune demande de mise à jour de profil en attente pour le moment.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

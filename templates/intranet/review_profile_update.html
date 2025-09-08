@@ -1,0 +1,112 @@
+{% extends "intranet/base.html" %}
+
+{% block title %}Revue de la mise à jour de profil{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Revue de la demande de mise à jour</h2>
+                
+                <!-- En-tête avec informations utilisateur -->
+                <div class="d-flex justify-content-between align-items-center mb-4 p-3 bg-light rounded">
+                    <div>
+                        <p class="mb-1"><strong>Utilisateur :</strong> {{ update.user.get_full_name }} ({{ update.user.email }})</p>
+                        <p class="mb-0"><strong>Soumis le :</strong> {{ update.submitted_at|date:"d M Y, H:i" }}</p>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-warning text-dark fs-6">En attente de validation</span>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Pour rejeter cette demande, veuillez ajouter un commentaire pour chaque champ qui nécessite des modifications.
+                </div>
+
+                <!-- Formulaire de rejet avec commentaires -->
+                <form method="post" action="{% url 'reject_update' update.id %}">
+                    {% csrf_token %}
+                    
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="20%">Champ</th>
+                                    <th width="25%">Valeur Actuelle</th>
+                                    <th width="25%">Nouvelle Valeur</th>
+                                    <th width="30%">Commentaire de rejet (obligatoire si rejet)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in comparison_data %}
+                                <tr class="{% if item.has_changed %}table-warning{% endif %}">
+                                    <td>
+                                        <strong>{{ item.verbose_name }}</strong>
+                                        {% if item.has_changed %}
+                                        <span class="badge bg-info ms-1">Modifié</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ item.current_value|default:"Non renseigné" }}</td>
+                                    <td>
+                                        <span class="text-success fw-bold">{{ item.new_value|default:"Non renseigné" }}</span>
+                                    </td>
+                                    <td>
+                                        <textarea class="form-control form-control-sm" 
+                                                  name="comment_{{ item.field_name }}" 
+                                                  rows="2" 
+                                                  placeholder="Expliquez pourquoi ce changement est rejeté..."
+                                                  {% if item.has_changed %}required{% endif %}>
+                                        </textarea>
+                                        <small class="text-muted">Obligatoire pour les champs modifiés</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="d-flex justify-content-between align-items-center mt-4 p-3 bg-light rounded">
+                        <a href="{% url 'pending_updates_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i> Retour à la liste
+                        </a>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-danger" onclick="return validateRejectionForm()">
+                                <i class="fas fa-times me-2"></i> Rejeter avec commentaires
+                            </button>
+                            <a href="{% url 'approve_update' update.id %}" class="btn btn-success">
+                                <i class="fas fa-check me-2"></i> Approuver toutes les modifications
+                            </a>
+                        </div>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript pour valider le formulaire de rejet -->
+<script>
+function validateRejectionForm() {
+    let hasComments = false;
+    let textareas = document.querySelectorAll('textarea[name^="comment_"]');
+    
+    textareas.forEach(textarea => {
+        if (textarea.value.trim() !== '') {
+            hasComments = true;
+        }
+    });
+    
+    if (!hasComments) {
+        alert('Veuillez ajouter au moins un commentaire pour expliquer le rejet.');
+        return false;
+    }
+    
+    return confirm('Êtes-vous sûr de vouloir rejeter cette demande de mise à jour ?');
+}
+</script>
+{% endblock %}

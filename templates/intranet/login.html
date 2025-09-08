@@ -1,0 +1,108 @@
+{% extends "intranet/base_simple.html" %}
+{% load static %}
+
+{% block title %}Connexion - Intranet NTCG{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center min-vh-80 py-5">
+    <div class="col-lg-5 col-md-7 col-sm-9">
+        <div class="card shadow-lg border-0 overflow-hidden">
+            <!-- En-tête avec logo -->
+            <div class="card-header border-0 text-white bg-primary py-4">
+                <div class="text-center mb-3">
+                    <img src="{% static 'images/default_profile.png' %}" alt="Logo NTCG" 
+                         class="rounded-circle" width="80" height="80" style="object-fit: cover; border: 3px solid white;">
+                </div>
+                <h3 class="mb-0 text-center">Connexion à l'Intranet</h3>
+            </div>
+            
+            <!-- Formulaire -->
+            <div class="card-body px-4 py-4">
+                {% if form.errors %}
+                <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Identifiant ou mot de passe incorrect
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endif %}
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- Champ identifiant -->
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label fw-medium">
+                            <i class="fas fa-user-circle me-2"></i>Identifiant
+                        </label>
+                        <input type="text" class="form-control py-2" id="id_username" 
+                               name="username" required placeholder="ex: j.dupont">
+                    </div>
+
+                    <!-- Champ mot de passe -->
+                    <div class="mb-4">  <!-- Changé de mb-3 à mb-4 pour l'espacement -->
+                        <label for="id_password" class="form-label fw-medium">
+                            <i class="fas fa-lock me-2"></i>Mot de passe
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control py-2" id="id_password" 
+                                   name="password" required placeholder="••••••••">
+                            <button class="btn btn-outline-secondary toggle-password" type="button">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bouton de connexion -->
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
+                        <span class="submit-text">Se connecter</span>
+                        <span class="spinner-border spinner-border-sm ms-2 d-none" role="status"></span>
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Pied de page avec message de contact -->
+            <div class="card-footer bg-transparent border-0 text-center py-3">
+                <p class="small text-muted mb-0">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Problème de connexion ? Contactez le <a href="mailto:support@ntcg.com" class="text-decoration-none">support technique</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript pour afficher/masquer le mot de passe -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Afficher/masquer le mot de passe
+    document.querySelectorAll('.toggle-password').forEach(button => {
+        button.addEventListener('click', function() {
+            const passwordInput = this.closest('.input-group').querySelector('input');
+            const icon = this.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        });
+    });
+    
+    // Animation pendant la connexion
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function() {
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const spinner = submitBtn.querySelector('.spinner-border');
+            const submitText = submitBtn.querySelector('.submit-text');
+            
+            submitText.textContent = 'Connexion...';
+            spinner.classList.remove('d-none');
+            submitBtn.disabled = true;
+        });
+    }
+});
+</script>
+{% endblock %}

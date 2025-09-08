@@ -1,0 +1,43 @@
+{% extends 'intranet/base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Gestion des demandes de documents</h2>
+    <hr>
+    {% if pending_requests %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Employé</th>
+                        <th>Document</th>
+                        <th>Date de la demande</th>
+                        <th>Raison</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in pending_requests %}
+                    <tr>
+                        <td>{{ request.employee.get_full_name }}</td>
+                        <td>{{ request.document_type.name }}</td>
+                        <td>{{ request.created_at|date:"d M Y" }}</td>
+                        <td>{{ request.reason|default_if_none:"N/A" }}</td>
+                        <td><span class="badge bg-warning text-dark">{{ request.get_status_display }}</span></td>
+                        <td>
+                            <a href="{% url 'approve_reject_document_request' request.id 'approve' %}" class="btn btn-success btn-sm me-2">Approuver</a>
+                            <a href="{% url 'approve_reject_document_request' request.id 'reject' %}" class="btn btn-danger btn-sm">Rejeter</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info" role="alert">
+            Aucune demande de document en attente.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

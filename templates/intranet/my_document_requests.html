@@ -1,0 +1,63 @@
+{% extends 'intranet/base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Mes demandes de documents</h2>
+    <hr>
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}" role="alert">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if document_requests %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Type de document</th>
+                        <th>Raison</th>
+                        <th>Date de la demande</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in document_requests %}
+                    <tr>
+                        <td>{{ request.document_type.name }}</td>
+                        <td>{{ request.reason|default_if_none:"N/A" }}</td>
+                        <td>{{ request.created_at|date:"d M Y" }}</td>
+                        <td>
+                            {% if request.status == 'PENDING' %}
+                                <span class="badge bg-warning text-dark">{{ request.get_status_display }}</span>
+                            {% elif request.status == 'APPROVED' %}
+                                <span class="badge bg-success">{{ request.get_status_display }}</span>
+                            {% elif request.status == 'REJECTED' %}
+                                <span class="badge bg-danger">{{ request.get_status_display }}</span>
+                            {% elif request.status == 'GENERATED' %}
+                                <a href="{% url 'download_document' request.id %}" class="btn btn-primary btn-sm">Télécharger</a>
+                            {% elif request.status == 'DOWNLOADED' %}
+                                <span class="badge bg-secondary">{{ request.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if request.status == 'REJECTED' %}
+                                <p class="text-danger">{{ request.rejection_comment }}</p>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info" role="alert">
+            Vous n'avez pas encore soumis de demande de document.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

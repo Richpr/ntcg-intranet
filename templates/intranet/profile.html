@@ -1,0 +1,167 @@
+{% extends 'intranet/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-4 text-center">
+            <div class="card mb-4">
+                <div class="card-body">
+                    {% if employee.photo_profil %}
+                        <img src="{{ employee.photo_profil.url }}" alt="Photo de profil" class="img-fluid rounded-circle mb-3" style="width: 150px; height: 150px;">
+                    {% else %}
+                        <img src="{% static 'images/default_profile.png' %}" alt="Photo de profil par défaut" class="img-fluid rounded-circle mb-3" style="width: 150px; height: 150px;">
+                    {% endif %}
+                    <h4 class="card-title">{{ employee.first_name }} {{ employee.last_name }}</h4>
+                    <p class="text-muted">{{ employee.job_role }} - {{ employee.departement }}</p>
+                    <p class="text-muted">Matricule: {{ employee.employee_id }}</p>
+                    <hr>
+                    <a href="{% url 'profile_update' %}" class="btn btn-sm btn-primary mb-2">Mettre à jour mon profil</a>
+                    {% if user.is_staff and user != employee %}
+                        <a href="{% url 'edit_employee' employee.id %}" class="btn btn-sm btn-secondary mb-2">Modifier le profil</a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if employee_badges %}
+            <div class="card mb-4">
+                <div class="card-header">Badges</div>
+                <ul class="list-group list-group-flush">
+                    {% for employee_badge in employee_badges %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ employee_badge.badge.name }}
+                            <span class="badge" style="background-color: {{ employee_badge.badge.color }};">
+                                <i class="fa {{ employee_badge.badge.icon }}"></i>
+                            </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+        </div>
+
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">Informations personnelles</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <p><strong>Date de naissance:</strong> {{ employee.date_de_naissance|default_if_none:"-" }}</p>
+                            <p><strong>Nationalité:</strong> {{ employee.get_nationalite_display|default_if_none:"-" }}</p>
+                            <p><strong>Pays de naissance:</strong> {{ employee.get_pays_de_naissance_display|default_if_none:"-" }}</p>
+                            <p><strong>Type sanguin:</strong> {{ employee.type_sanguin|default_if_none:"-" }}</p>
+                        </div>
+                        <div class="col-sm-6">
+                            <p><strong>Adresse:</strong> {{ employee.adresse|default_if_none:"-" }}</p>
+                            <p><strong>Téléphone personnel:</strong> {{ employee.telephone_personnel|default_if_none:"-" }}</p>
+                            <p><strong>Email personnel:</strong> {{ employee.personal_email|default_if_none:"-" }}</p>
+                            <p><strong>{{ employee.piece_type|default_if_none:"Pièce d'identité" }}:</strong> {{ employee.piece_number|default_if_none:"-" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">Informations professionnelles</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <p><strong>Email professionnel:</strong> {{ employee.professional_email|default_if_none:"-" }}</p>
+                            <p><strong>Date d'embauche:</strong> {{ employee.date_embauche|default_if_none:"-" }}</p>
+                            <p><strong>Type de contrat:</strong> {{ employee.contract_type|default_if_none:"-" }}</p>
+                        </div>
+                        <div class="col-sm-6">
+                            <p><strong>Numéro Isignum:</strong> {{ employee.isignum|default_if_none:"-" }}</p>
+                            <p><strong>ID Eritop:</strong> {{ employee.eritop_id|default_if_none:"-" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">Informations médicales</div>
+                <div class="card-body">
+                    <p><strong>Allergies:</strong> {{ employee.allergies|default_if_none:"-" }}</p>
+                    <p><strong>Maladies chroniques:</strong> {{ employee.maladies_chroniques|default_if_none:"-" }}</p>
+                    <p><strong>Médicaments:</strong> {{ employee.medicaments|default_if_none:"-" }}</p>
+                    <p><strong>Contact d'urgence:</strong> {{ employee.emergency_contact_name|default_if_none:"-" }} ({{ employee.emergency_contact_phone|default_if_none:"-" }})</p>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">Informations administratives</div>
+                <div class="card-body">
+                    <p><strong>Banque:</strong> {{ employee.bank_info|default_if_none:"-" }}</p>
+                    <p><strong>Numéro de compte:</strong> {{ employee.bank_account_number|default_if_none:"-" }}</p>
+                    <p><strong>Numéro CNSS:</strong> {{ employee.cnss|default_if_none:"-" }}</p>
+                    <p><strong>Personnes à charge:</strong> {{ employee.dependants|default_if_none:"-" }}</p>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">Documents</div>
+                <div class="card-body">
+                    {% if documents %}
+                        <ul class="list-group list-group-flush">
+                            {% for doc in documents %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <a href="{{ doc.fichier.url }}" target="_blank">{{ doc.nom }}</a>
+                                    <span class="badge bg-secondary">{{ doc.document_type }}</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>Aucun document téléchargé.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- NOUVELLE SECTION: Historique des demandes de mise à jour -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        Historique des demandes de mise à jour
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if updates %}
+                        {% for update in updates %}
+                        <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+                            <div>
+                                <strong>{{ update.submitted_at|date:"d/m/Y H:i" }}</strong>
+                                <span class="badge bg-{% if update.status == 'approved' %}success{% elif update.status == 'rejected' %}danger{% else %}warning{% endif %} ms-2">
+                                    {{ update.get_status_display }}
+                                </span>
+                            </div>
+                            <div>
+                                {% if update.status == 'rejected' and update.rejection_comments %}
+                                <a href="{% url 'view_rejected_update' update.id %}" class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-comment-dots me-1"></i> Voir les commentaires
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted mb-0">Aucune demande de mise à jour pour le moment.</p>
+                    {% endif %}
+                    
+                    <div class="mt-3">
+                        <a href="{% url 'my_profile_updates' %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-list me-1"></i> Voir tout l'historique
+                        </a>
+                        <a href="{% url 'profile_update' %}" class="btn btn-primary btn-sm ms-2">
+                            <i class="fas fa-plus me-1"></i> Nouvelle demande
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <!-- FIN DE LA NOUVELLE SECTION -->
+
+        </div>
+    </div>
+</div>
+{% endblock %}

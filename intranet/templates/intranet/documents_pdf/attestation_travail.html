@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Attestation de Travail</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            font-size: 12pt;
+        }
+        .header, .footer {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header img {
+            max-width: 150px;
+        }
+        .title {
+            text-align: center;
+            font-size: 18pt;
+            font-weight: bold;
+            margin-top: 50px;
+            margin-bottom: 30px;
+            text-decoration: underline;
+        }
+        .content {
+            text-align: justify;
+            line-height: 1.5;
+        }
+        .signature {
+            margin-top: 60px;
+            text-align: right;
+        }
+        .date {
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="https://via.placeholder.com/150x80?text=Logo+Entreprise" alt="Logo de l'entreprise">
+    </div>
+
+    <div class="title">ATTESTATION DE TRAVAIL</div>
+
+    <div class="content">
+        <p>Je soussigné, [Nom de l'entreprise], certifie par la présente que :</p>
+        <p>
+            Nom et Prénom : <strong>{{ employee.first_name }} {{ employee.last_name }}</strong><br>
+            Numéro de matricule : <strong>{{ employee.employee_id }}</strong><br>
+            Fonction : <strong>{{ employee.job_role.name }}</strong><br>
+            Département : <strong>{{ employee.departement.name }}</strong><br>
+            Date d'embauche : <strong>{{ employee.date_embauche|date:"d F Y" }}</strong>
+        </p>
+        <p>est un employé de notre entreprise et occupe la fonction de {{ employee.job_role.name }} depuis le {{ employee.date_embauche|date:"d F Y" }}.</p>
+        <p>Cette attestation est délivrée à l'intéressé(e) pour servir et valoir ce que de droit.</p>
+    </div>
+
+    <div class="signature">
+        <p>Fait à {{ employee.country.name|default:"[Ville]" }}, le {{ generated_date|date:"d F Y" }}</p>
+        <p>Le Responsable des Ressources Humaines</p>
+        <br><br><br>
+        <p>__________________________</p>
+        <p>[Nom et Prénom du signataire]</p>
+    </div>
+
+</body>
+</html>

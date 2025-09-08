@@ -1,0 +1,343 @@
+{% extends "intranet/base.html" %}
+{% load static intranet_tags %}
+
+{% block title %}Accueil | NTCG{% endblock %}
+
+{% block extra_css %}
+<style>
+.quick-stats-card {
+    transition: transform 0.2s ease-in-out;
+}
+.quick-stats-card:hover {
+    transform: translateY(-2px);
+}
+.event-badge {
+    font-size: 0.75rem;
+}
+.profile-welcome {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Carte de bienvenue personnalisée -->
+    <div class="col-md-6">
+        <div class="card profile-welcome text-white h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-4">
+                    <img src="{% if user.photo_profil %}{{ user.photo_profil.url }}{% else %}{% static 'images/default_profile.png' %}{% endif %}" 
+                         alt="Photo profil" class="rounded-circle me-3" width="80" height="80"
+                         style="object-fit: cover;">
+                    <div>
+                        <h4 class="card-title fw-bold mb-1">Bonjour {{ user.first_name }} 👋</h4>
+                        <p class="mb-0 opacity-75">{{ user.job_role.name|default:"Collaborateur" }}</p>
+                        <small class="opacity-75">{{ user.departement.name|default:"" }}</small>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="mb-1">Matricule</h6>
+                        <p class="mb-0 fw-bold">{{ user.employee_id }}</p>
+                    </div>
+                    <div>
+                        <h6 class="mb-1">Ancienneté</h6>
+                        <p class="mb-0 fw-bold">{{ user.years_of_service }} an(s)</p>
+                    </div>
+                </div>
+
+                {% if pending_updates_count %}
+                <div class="alert alert-warning mt-3 mb-0">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Vous avez {{ pending_updates_count }} mise(s) à jour en attente de validation
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques rapides -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-transparent">
+                <h5 class="card-title fw-bold mb-0">📊 Mes indicateurs</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 mb-3">
+                        <div class="border rounded p-3 quick-stats-card">
+                            <div class="text-primary mb-2">
+                                <i class="fas fa-file-alt fa-2x"></i>
+                            </div>
+                            <h4 class="text-primary">{{ my_documents_count }}</h4>
+                            <p class="mb-0 text-muted small">Mes documents</p>
+                        </div>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="border rounded p-3 quick-stats-card">
+                            <div class="text-success mb-2">
+                                <i class="fas fa-calendar-check fa-2x"></i>
+                            </div>
+                            <h4 class="text-success">{{ my_leave_requests_count }}</h4>
+                            <p class="mb-0 text-muted small">Demandes de congé</p>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded p-3 quick-stats-card">
+                            <div class="text-info mb-2">
+                                <i class="fas fa-clock fa-2x"></i>
+                            </div>
+                            <h4 class="text-info">{{ pending_documents_count }}</h4>
+                            <p class="mb-0 text-muted small">En attente</p>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded p-3 quick-stats-card">
+                            <div class="text-warning mb-2">
+                                <i class="fas fa-bell fa-2x"></i>
+                            </div>
+                            <h4 class="text-warning">{{ unread_notifications_count }}</h4>
+                            <p class="mb-0 text-muted small">Notifications</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tableau de bord RH (seulement pour les RH) -->
+{% if is_hr %}
+<div class="row mt-4 g-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-transparent">
+                <h5 class="card-title fw-bold mb-0">👑 Tableau de bord RH</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="border rounded p-3 bg-light">
+                            <h3 class="text-primary mb-1">{{ hr_stats.total_employees }}</h3>
+                            <p class="mb-0 text-muted small">Total employés</p>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="border rounded p-3 bg-light">
+                            <h3 class="text-success mb-1">{{ hr_stats.active_employees }}</h3>
+                            <p class="mb-0 text-muted small">Actifs</p>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="border rounded p-3 bg-light">
+                            <h3 class="text-warning mb-1">{{ hr_stats.pending_updates }}</h3>
+                            <p class="mb-0 text-muted small">Mises à jour</p>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="border rounded p-3 bg-light">
+                            <h3 class="text-info mb-1">{{ hr_stats.pending_leaves }}</h3>
+                            <p class="mb-0 text-muted small">Congés</p>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="border rounded p-3 bg-light">
+                            <h3 class="text-danger mb-1">{{ hr_stats.pending_documents }}</h3>
+                            <p class="mb-0 text-muted small">Documents</p>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6 mb-3">
+                        <div class="border rounded p-3 bg-light">
+                            <h3 class="text-secondary mb-1">{{ hr_stats.new_this_month }}</h3>
+                            <p class="mb-0 text-muted small">Nouveaux</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Annonces récentes -->
+<div class="row mt-4 g-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h5 class="card-title fw-bold mb-0">📢 Annonces récentes</h5>
+                <a href="#" class="btn btn-sm btn-outline-primary">Voir tout</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for post in latest_posts %}
+                    <a href="#" class="list-group-item list-group-item-action border-0">
+                        <div class="d-flex w-100 justify-content-between align-items-start">
+                            <h6 class="mb-1 fw-bold text-dark">{{ post.title }}</h6>
+                            <small class="text-muted">{{ post.created_at|timesince }}</small>
+                        </div>
+                        <p class="mb-1 text-muted">{{ post.content|truncatewords:20 }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fas fa-user me-1"></i>{{ post.author.get_full_name }}
+                            </small>
+                            <span class="badge bg-secondary">{{ post.created_at|date:"d M Y" }}</span>
+                        </div>
+                    </a>
+                    {% empty %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-newspaper fa-3x mb-3 opacity-50"></i>
+                        <p>Aucune annonce pour le moment</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Événements à venir -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h5 class="card-title fw-bold mb-0">📅 Événements à venir</h5>
+                <span class="badge bg-primary">{{ events|length }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for event in events %}
+                    <div class="list-group-item border-0">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-{{ event.type }} text-white rounded-3 p-3 me-3 text-center" style="min-width: 60px;">
+                                <span class="fw-bold d-block">{{ event.date|date:"d" }}</span>
+                                <small class="d-block">{{ event.date|date:"M" }}</small>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-0 fw-bold">{{ event.title }}</h6>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock me-1"></i>{{ event.time|default:"Toute la journée" }}
+                                    {% if event.location %}
+                                    <i class="fas fa-map-marker-alt ms-2 me-1"></i>{{ event.location }}
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-calendar fa-3x mb-3 opacity-50"></i>
+                        <p>Aucun événement à venir</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Actions rapides -->
+<div class="row mt-4 g-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-transparent">
+                <h5 class="card-title fw-bold mb-0">⚡ Actions rapides</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 col-6 mb-3">
+                        <a href="{% url 'profile_update' %}" class="btn btn-outline-primary w-100 h-100 py-3">
+                            <div class="mb-2">
+                                <i class="fas fa-user-edit fa-2x"></i>
+                            </div>
+                            <span>Mettre à jour mon profil</span>
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <a href="{% url 'submit_leave_request' %}" class="btn btn-outline-success w-100 h-100 py-3">
+                            <div class="mb-2">
+                                <i class="fas fa-calendar-alt fa-2x"></i>
+                            </div>
+                            <span>Demander un congé</span>
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <a href="{% url 'request_document' %}" class="btn btn-outline-info w-100 h-100 py-3">
+                            <div class="mb-2">
+                                <i class="fas fa-file-alt fa-2x"></i>
+                            </div>
+                            <span>Demander un document</span>
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <a href="{% url 'employee_directory' %}" class="btn btn-outline-secondary w-100 h-100 py-3">
+                            <div class="mb-2">
+                                <i class="fas fa-users fa-2x"></i>
+                            </div>
+                            <span>Annuaire des employés</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notifications récentes -->
+<div class="row mt-4 g-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                <h5 class="card-title fw-bold mb-0">🔔 Dernières notifications</h5>
+                <a href="{% url 'notifications' %}" class="btn btn-sm btn-outline-secondary">Voir tout</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for notification in recent_notifications %}
+                    <a href="{% if notification.related_url %}{{ notification.related_url }}{% else %}#{% endif %}" 
+                       class="list-group-item list-group-item-action border-0 {% if not notification.is_read %}bg-light{% endif %}">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-{{ notification.type }} me-3">
+                                <i class="fas fa-{{ notification.icon }}"></i>
+                            </span>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-0 fw-bold">{{ notification.title }}</h6>
+                                <small class="text-muted">{{ notification.message|truncatewords:10 }}</small>
+                            </div>
+                            <small class="text-muted">{{ notification.created_at|timesince }}</small>
+                        </div>
+                    </a>
+                    {% empty %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-bell-slash fa-2x mb-2"></i>
+                        <p>Aucune notification</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Marquer les notifications comme lues au clic
+document.addEventListener('DOMContentLoaded', function() {
+    const notificationLinks = document.querySelectorAll('.list-group-item-action');
+    notificationLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            const notificationId = this.dataset.notificationId;
+            if (notificationId) {
+                fetch(`/notifications/mark-read/${notificationId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json',
+                    },
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

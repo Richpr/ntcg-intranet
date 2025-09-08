@@ -1,0 +1,85 @@
+{% extends 'intranet/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">{{ title }}</h1>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Demandes en attente</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="pendingTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Employé</th>
+                            <th>Type de Permission</th>
+                            <th>Dates</th>
+                            <th>Motif</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for request in pending_requests %}
+                        <tr>
+                            <td>{{ request.employee.get_full_name }}</td>
+                            <td>{{ request.leave_type.name }}</td>
+                            <td>{{ request.start_date|date:"d/m/Y" }} au {{ request.end_date|date:"d/m/Y" }}</td>
+                            <td>{{ request.reason|truncatewords:10 }}</td>
+                            <td>
+                                <a href="{% url 'process_leave_request' request_id=request.id %}" class="btn btn-sm btn-info">
+                                    <i class="fas fa-edit"></i> Traiter
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5">Aucune demande en attente.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Demandes traitées</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="processedTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Employé</th>
+                            <th>Type de Permission</th>
+                            <th>Statut</th>
+                            <th>Dates</th>
+                            <th>Commentaire</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for request in processed_requests %}
+                        <tr>
+                            <td>{{ request.employee.get_full_name }}</td>
+                            <td>{{ request.leave_type.name }}</td>
+                            <td>{{ request.get_status_display }}</td>
+                            <td>{{ request.start_date|date:"d/m/Y" }} au {{ request.end_date|date:"d/m/Y" }}</td>
+                            <td>{{ request.rejection_comment|default:"N/A" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5">Aucune demande traitée.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends 'intranet/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Demander un document</h2>
+    <hr>
+    <div class="card p-4">
+        <form method="post">
+            {% csrf_token %}
+            {{ form|crispy }}
+            <button type="submit" class="btn btn-primary mt-3">Soumettre la demande</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

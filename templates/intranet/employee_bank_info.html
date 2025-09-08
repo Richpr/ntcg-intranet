@@ -1,0 +1,103 @@
+{% extends 'intranet/base.html' %}
+{% load static %}
+
+{% block title %}Informations Bancaires Employés{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Styles pour le tableau avec défilement */
+    .table-scroll-container {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 8px;
+        border: 1px solid rgba(0,0,0,0.08);
+        overscroll-behavior-x: contain;
+    }
+
+    .table-scroll-container::-webkit-scrollbar {
+        height: 8px;
+    }
+
+    .table-scroll-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+    .table-scroll-container::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-1">Informations Bancaires des Employés</h1>
+        <p class="text-muted mb-0">Données confidentielles destinées aux Ressources Humaines</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary touch-feedback" id="exportBtn" aria-label="Exporter les données">
+            <i class="fas fa-download me-2"></i>Exporter
+        </button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-scroll-container">
+            <table class="table table-hover table-striped mb-0" style="min-width: 1000px;">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col">Employé</th>
+                        <th scope="col">Rôle</th>
+                        <th scope="col">Département</th>
+                        <th scope="col">Nom de la Banque</th>
+                        <th scope="col">Numéro de Compte</th>
+                        <th scope="col">Numéro CNSS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for employee in employees %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <img src="{% if employee.photo_profil %}{{ employee.photo_profil.url }}{% else %}{% static 'images/default_profile.png' %}{% endif %}" 
+                                     alt="Photo de profil de {{ employee.get_full_name }}" 
+                                     class="rounded-circle me-3" width="40" height="40">
+                                <div>
+                                    <div class="fw-bold">{{ employee.get_full_name }}</div>
+                                    <small class="text-muted">{{ employee.username }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ employee.job_role|default:"-" }}</td>
+                        <td>{{ employee.departement|default:"-" }}</td>
+                        <td>{{ employee.bank_info|default:"-" }}</td>
+                        <td>{{ employee.bank_account_number|default:"-" }}</td>
+                        <td>{{ employee.cnss|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            Aucune information bancaire disponible.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Script d'exportation (si nécessaire)
+    document.getElementById('exportBtn').addEventListener('click', function() {
+        alert('Fonctionnalité d\'exportation à implémenter.');
+    });
+</script>
+{% endblock %}

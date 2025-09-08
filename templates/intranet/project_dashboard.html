@@ -1,0 +1,63 @@
+{% extends 'intranet/base.html' %}
+{% load static %}
+{% block title %}Tableau de bord des projets{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Tableau de bord des projets</h2>
+
+    <div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Tableau de bord des projets</h2>
+        {% if is_coordinator %}
+        <a href="{% url 'create_project' %}" class="btn btn-primary"><i class="fas fa-plus"></i> Créer un nouveau projet</a>
+        {% endif %}
+    </div>
+
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <h3 class="mt-4">Mes projets coordonnés</h3>
+            {% if managed_projects %}
+            <div class="list-group">
+                {% for project in managed_projects %}
+                <a href="{% url 'project_detail' project.id %}" class="list-group-item list-group-item-action mb-2">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">{{ project.name }}</h5>
+                        <small class="badge bg-primary">{{ project.status }}</small>
+                    </div>
+                    <p class="mb-1">{{ project.description|truncatechars:100 }}</p>
+                    <small>Du {{ project.start_date|date:"d M Y" }} au {{ project.end_date|date:"d M Y" }}</small>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info" role="alert">
+                Vous ne coordonnez aucun projet pour le moment.
+            </div>
+            {% endif %}
+
+            <h3 class="mt-5">Projets auxquels je participe</h3>
+            {% if team_projects %}
+            <div class="list-group">
+                {% for project in team_projects %}
+                <a href="{% url 'project_detail' project.id %}" class="list-group-item list-group-item-action mb-2">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">{{ project.name }}</h5>
+                        <small class="badge bg-secondary">{{ project.status }}</small>
+                    </div>
+                    <p class="mb-1">{{ project.description|truncatechars:100 }}</p>
+                    <small>Du {{ project.start_date|date:"d M Y" }} au {{ project.end_date|date:"d M Y" }}</small>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-secondary" role="alert">
+                Vous ne participez à aucun autre projet pour le moment.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

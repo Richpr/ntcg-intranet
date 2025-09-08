@@ -1,0 +1,44 @@
+{% extends "intranet/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Mettre à jour mon profil{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <h2 class="text-center mb-4">Mettre à jour mon profil</h2>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h3 class="card-title text-center mb-4">Mise à jour des informations de profil</h3>
+                {% if existing_update %}
+                    <div class="alert alert-info">
+                        Une demande de mise à jour de votre profil est déjà en attente d'approbation.
+                    </div>
+                {% else %}
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {{ profile_form|crispy }}
+                        <div class="d-grid mt-4">
+                            <button type="submit" name="profile_form_submit" class="btn btn-primary">Soumettre les mises à jour</button>
+                        </div>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h3 class="card-title text-center mb-4">Télécharger des documents</h3>
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ document_form|crispy }}
+                    <div class="d-grid mt-4">
+                        <button type="submit" name="document_form_submit" class="btn btn-success">Télécharger</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

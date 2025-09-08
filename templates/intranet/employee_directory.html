@@ -1,0 +1,539 @@
+{% extends 'intranet/base.html' %}
+{% load static intranet_tags %}
+
+{% block title %}Annuaire des employés - Intranet NTCG{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Styles spécifiques à l'annuaire */
+    .employee-card {
+        transition: all 0.3s ease;
+        border: 1px solid rgba(0,0,0,0.08);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    
+    .employee-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        border-color: var(--bs-primary);
+    }
+    
+    .employee-avatar {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border: 3px solid #fff;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .employee-card:hover .employee-avatar {
+        transform: scale(1.05);
+        border-color: var(--bs-primary);
+    }
+    
+    .status-indicator {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+    }
+    
+    .status-online { background-color: #28a745; }
+    .status-offline { background-color: #6c757d; }
+    .status-away { background-color: #ffc107; }
+    .status-busy { background-color: #dc3545; }
+    
+    .badge-custom {
+        font-size: 0.75rem;
+        padding: 0.35em 0.65em;
+    }
+    
+    .search-filters {
+        background: var(--card-bg);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    
+    .view-toggle {
+        background: var(--card-bg);
+        border-radius: 8px;
+        padding: 0.5rem;
+    }
+    
+    .view-toggle-btn {
+        padding: 0.5rem 1rem;
+        border: none;
+        background: none;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+    }
+    
+    .view-toggle-btn.active {
+        background: var(--bs-primary);
+        color: white;
+    }
+    
+    /* Animation de chargement */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .employee-item {
+        animation: fadeIn 0.5s ease forwards;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .employee-avatar {
+            width: 60px;
+            height: 60px;
+        }
+        
+        .search-filters {
+            padding: 1rem;
+        }
+    }
+    
+    /* Dark mode support */
+    .dark-mode .employee-card {
+        border-color: rgba(255,255,255,0.1);
+        background: var(--card-bg);
+    }
+    
+    .dark-mode .search-filters {
+        background: var(--card-bg);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    /* Solution pour le défilement horizontal du tableau uniquement */
+    .table-scroll-container {
+        display: block;
+        width: 100%;
+        /* Changement ici : 'auto' devient 'scroll' pour toujours afficher la scrollbar */
+        overflow-x: scroll;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 1rem;
+        border-radius: 8px;
+        border: 1px solid rgba(0,0,0,0.08);
+        overscroll-behavior-x: contain;
+        scrollbar-width: thin;
+        position: relative;
+    }
+    
+    /* Style de la scrollbar pour une meilleure apparence */
+    .table-scroll-container::-webkit-scrollbar {
+        height: 8px;
+    }
+    
+    .table-scroll-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+    
+    .table-scroll-container::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 4px;
+    }
+    
+    .table-scroll-container::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+    
+    /* Pour les mobiles - ajustement de l'affichage */
+    @media (max-width: 768px) {
+        .table-scroll-container {
+            margin: 0;
+            width: 100%;
+        }
+        
+        /* Indicateur visuel pour le défilement */
+        .table-scroll-container:after {
+            content: "← Défilez →";
+            position: absolute;
+            top: -25px;
+            right: 10px;
+            font-size: 12px;
+            color: #6c757d;
+            background: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            opacity: 0.8;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .table-scroll-container::-webkit-scrollbar {
+            height: 6px;
+        }
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 mb-1">Annuaire des employés</h1>
+        <p class="text-muted mb-0">Retrouvez tous les collaborateurs de l'entreprise</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if user|has_group:"Ressources Humaines" or user.is_superuser %}
+        <a href="{% url 'register_employee' %}" class="btn btn-primary touch-feedback">
+            <i class="fas fa-user-plus me-2"></i>Nouvel employé
+        </a>
+        {% endif %}
+        <button class="btn btn-outline-secondary touch-feedback" id="exportBtn" aria-label="Exporter les données">
+            <i class="fas fa-download me-2"></i>Exporter
+        </button>
+    </div>
+</div>
+
+<div class="search-filters">
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="input-group">
+                <span class="input-group-text bg-transparent border-end-0">
+                    <i class="fas fa-search text-muted"></i>
+                </span>
+                <input type="text" id="globalSearch" class="form-control border-start-0" placeholder="Rechercher un employé..." 
+                       aria-label="Rechercher un employé" value="{{ search_query|default:'' }}">
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <select id="departmentFilter" class="form-select" aria-label="Filtrer par département">
+                <option value="">Tous les départements</option>
+                {% for dept in departments %}
+                <option value="{{ dept.name }}" {% if dept.name == selected_department %}selected{% endif %}>{{ dept.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="col-md-3">
+            <select id="countryFilter" class="form-select" aria-label="Filtrer par pays">
+                <option value="">Tous les pays</option>
+                {% for country in countries %}
+                <option value="{{ country.code }}" {% if country.code == selected_country %}selected{% endif %}>
+                    {{ country.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="col-md-2">
+            <select id="statusFilter" class="form-select" aria-label="Filtrer par statut">
+                <option value="" {% if not selected_status %}selected{% endif %}>Tous les statuts</option>
+                <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Actifs</option>
+                <option value="inactive" {% if selected_status == 'inactive' %}selected{% endif %}>Inactifs</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted" id="resultsCount">
+                    {{ page_obj.paginator.count }} employé(s) trouvé(s)
+                </span>
+                <div class="view-toggle">
+                    <button class="view-toggle-btn touch-feedback active" data-view="grid" aria-label="Afficher en grille" role="tab" aria-selected="true">
+                        <i class="fas fa-th-large"></i>
+                    </button>
+                    <button class="view-toggle-btn touch-feedback" data-view="list" aria-label="Afficher en liste" role="tab" aria-selected="false">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="gridView" class="row g-3">
+    {% for employee in page_obj %}
+    <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6 employee-item">
+        <div class="card employee-card h-100">
+            <div class="card-body text-center p-4">
+                <div class="position-relative d-inline-block mb-3">
+                    <img src="{% if employee.photo_profil %}{{ employee.photo_profil.url }}{% else %}{% static 'images/default_profile.png' %}{% endif %}" 
+                         alt="Photo de profil de {{ employee.get_full_name }}" class="employee-avatar rounded-circle"
+                         loading="lazy" onerror="this.src='{% static 'images/default_profile.png' %}'">
+                    <span class="status-indicator status-{% if employee.is_active %}online{% else %}offline{% endif %}"></span>
+                </div>
+                
+                <h5 class="card-title mb-1">
+                    <a href="{% url 'user_profile' employee.id %}" class="text-decoration-none text-dark">
+                        {{ employee.first_name }} {{ employee.last_name }}
+                    </a>
+                </h5>
+                
+                <p class="text-muted mb-2 small">{{ employee.job_role.name|default:"Non spécifié" }}</p>
+                
+                <div class="d-flex justify-content-center gap-1 mb-3">
+                    <span class="badge bg-primary badge-custom">{{ employee.departement.name|default:"-" }}</span>
+                    <span class="badge bg-secondary badge-custom">{{ employee.country.name|default:"-" }}</span>
+                </div>
+                
+                <div class="employee-contact mb-3">
+                    {% if employee.telephone_personnel %}
+                    <div class="text-muted small">
+                        <i class="fas fa-phone me-1"></i>{{ employee.telephone_personnel }}
+                    </div>
+                    {% endif %}
+                    {% if employee.professional_email %}
+                    <div class="text-muted small">
+                        <i class="fas fa-envelope me-1"></i>{{ employee.professional_email }}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="d-flex justify-content-center gap-2">
+                    <a href="{% url 'user_profile' employee.id %}" class="btn btn-sm btn-outline-primary touch-feedback" aria-label="Voir le profil">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    {% if user|has_group:"Ressources Humaines" or user.is_superuser %}
+                    <a href="{% url 'edit_employee' employee.id %}" class="btn btn-sm btn-outline-secondary touch-feedback" aria-label="Modifier le profil">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    {% endif %}
+                    {% if employee.telephone_personnel %}
+                    <a href="tel:{{ employee.telephone_personnel }}" class="btn btn-sm btn-outline-success touch-feedback" aria-label="Appeler l'employé">
+                        <i class="fas fa-phone"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="text-center py-5">
+            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">Aucun employé trouvé</h4>
+            <p class="text-muted">Aucun employé ne correspond à vos critères de recherche.</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div id="listView" class="d-none">
+  <div class="card">
+      <div class="card-body p-0">
+          <div class="table-scroll-container position-relative"> 
+              <table class="table table-hover table-striped mb-0" style="min-width: 800px;">
+                  <thead class="table-light">
+                      <tr>
+                          <th>Employé</th>
+                          <th scope="col">Matricule</th>
+                          <th scope="col">Email Pro</th>
+                          <th scope="col">Email Perso</th>
+                          <th scope="col">Tél Perso</th>
+                          <th scope="col">Type de Contrat</th>
+                          <th scope="col">Type de Pièce</th>
+                          <th scope="col">Numéro de Pièce</th>
+                          <th scope="col">ID Isignum</th>
+                          <th scope="col">ID Eritop</th>
+                          
+                          <th>Poste</th>
+                          <th>Département</th>
+                          <th>Pays</th>
+                          <th>Statut</th>
+                          <th class="text-center">Actions</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      {% for employee in page_obj %}
+                      <tr>
+                          <td>
+                              <div class="d-flex align-items-center">
+                                  <img src="{% if employee.photo_profil %}{{ employee.photo_profil.url }}{% else %}{% static 'images/default_profile.png' %}{% endif %}" 
+                                       alt="{{ employee.get_full_name }}" 
+                                       class="rounded-circle me-3" width="40" height="40"
+                                       loading="lazy" onerror="this.src='{% static 'images/default_profile.png' %}'">
+                                  <div>
+                                      <div class="fw-bold">{{ employee.first_name }} {{ employee.last_name }}</div>
+                                      <small class="text-muted">{{ employee.username }}</small>
+                                  </div>
+                              </div>
+                          </td>
+                          <td>{{ employee.employee_id|default:"-" }}</td>
+                          <td>{{ employee.professional_email|default:"-" }}</td>
+                          <td>{{ employee.personal_email|default:"-" }}</td>
+                          <td>{{ employee.telephone_personnel|default:"-" }}</td>
+                          <td>{{ employee.contract_type|default:"-" }}</td>
+                          <td>{{ employee.piece_type|default:"-" }}</td>
+                          <td>{{ employee.piece_number|default:"-" }}</td>
+                          <td>{{ employee.isignum_number|default:"-" }}</td>
+                          <td>{{ employee.eritop_id|default:"-" }}</td>
+                         
+                          <td>{{ employee.job_role.name|default:"-" }}</td>
+                          <td>{{ employee.departement.name|default:"-" }}</td>
+                          <td>{{ employee.country.name|default:"-" }}</td>
+                          <td>
+                              {% if employee.is_active %}
+                              <span class="badge bg-success">Actif</span>
+                              {% else %}
+                              <span class="badge bg-danger">Inactif</span>
+                              {% endif %}
+                          </td>
+                          <td class="text-center">
+                              <div class="btn-group btn-group-sm">
+                                  <a href="{% url 'user_profile' employee.id %}" class="btn btn-outline-primary">
+                                      <i class="fas fa-eye"></i>
+                                  </a>
+                                  {% if user|has_group:"Ressources Humaines" or user.is_superuser %}
+                                  <a href="{% url 'edit_employee' employee.id %}" class="btn btn-outline-secondary">
+                                      <i class="fas fa-edit"></i>
+                                  </a>
+                                  {% endif %}
+                              </div>
+                          </td>
+                      </tr>
+                      {% endfor %}
+                  </tbody>
+              </table>
+          </div>
+      </div>
+  </div>
+</div>
+
+{% if page_obj.has_other_pages %}
+<nav aria-label="Navigation des pages" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link touch-feedback" href="?page=1{% if selected_country %}&country={{ selected_country }}{% endif %}{% if selected_department %}&department={{ selected_department }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Première page">
+                    <i class="fas fa-angle-double-left"></i>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link touch-feedback" href="?page={{ page_obj.previous_page_number }}{% if selected_country %}&country={{ selected_country }}{% endif %}{% if selected_department %}&department={{ selected_department }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Page précédente">
+                    <i class="fas fa-angle-left"></i>
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled">
+                <span class="page-link"><i class="fas fa-angle-double-left"></i></span>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link"><i class="fas fa-angle-left"></i></span>
+            </li>
+        {% endif %}
+
+        {% for i in page_obj.paginator.page_range %}
+            {% if page_obj.number == i %}
+                <li class="page-item active" aria-current="page">
+                    <span class="page-link">{{ i }}</span>
+                </li>
+            {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link touch-feedback" href="?page={{ i }}{% if selected_country %}&country={{ selected_country }}{% endif %}{% if selected_department %}&department={{ selected_department }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">{{ i }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link touch-feedback" href="?page={{ page_obj.next_page_number }}{% if selected_country %}&country={{ selected_country }}{% endif %}{% if selected_department %}&department={{ selected_department }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Page suivante">
+                    <i class="fas fa-angle-right"></i>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link touch-feedback" href="?page={{ page_obj.paginator.num_pages }}{% if selected_country %}&country={{ selected_country }}{% endif %}{% if selected_department %}&department={{ selected_department }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" aria-label="Dernière page">
+                    <i class="fas fa-angle-double-right"></i>
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled">
+                <span class="page-link"><i class="fas fa-angle-right"></i></span>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link"><i class="fas fa-angle-double-right"></i></span>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const filters = document.querySelectorAll('#globalSearch, #departmentFilter, #countryFilter, #statusFilter');
+    filters.forEach(filterElement => {
+        let debounceTimer;
+        
+        if (filterElement.tagName === 'INPUT') {
+            filterElement.addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    applyFilters();
+                }, 500);
+            });
+        }
+        
+        if (filterElement.tagName === 'SELECT') {
+            filterElement.addEventListener('change', function() {
+                applyFilters();
+            });
+        }
+    });
+
+    function applyFilters() {
+        const url = new URL(window.location.href);
+        const params = url.searchParams;
+
+        params.set('search', document.getElementById('globalSearch').value);
+        params.set('department', document.getElementById('departmentFilter').value);
+        params.set('country', document.getElementById('countryFilter').value);
+        params.set('status', document.getElementById('statusFilter').value);
+        params.set('page', 1);
+        
+        for (const [key, value] of Array.from(params.entries())) {
+            if (!value) {
+                params.delete(key);
+            }
+        }
+        
+        window.location.href = url.toString();
+    }
+    
+    const viewToggleButtons = document.querySelectorAll('.view-toggle-btn');
+    const gridView = document.getElementById('gridView');
+    const listView = document.getElementById('listView');
+    
+    function switchView(viewType) {
+        viewToggleButtons.forEach(btn => {
+            const isActive = btn.dataset.view === viewType;
+            btn.classList.toggle('active', isActive);
+            btn.setAttribute('aria-selected', isActive);
+        });
+        
+        if (viewType === 'list') {
+            gridView.classList.add('d-none');
+            listView.classList.remove('d-none');
+        } else {
+            gridView.classList.remove('d-none');
+            listView.classList.add('d-none');
+        }
+        
+        localStorage.setItem('directoryView', viewType);
+    }
+
+    const savedView = localStorage.getItem('directoryView') || 'grid';
+    switchView(savedView);
+
+    viewToggleButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            switchView(btn.dataset.view);
+        });
+    });
+});
+</script>
+{% endblock %}

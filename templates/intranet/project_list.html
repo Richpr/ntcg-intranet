@@ -1,0 +1,51 @@
+{% extends 'intranet/base.html' %}
+{% load static %}
+{% load intranet_tags %}
+{% block title %}Liste des Projets{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Tableau de bord des Projets</h2>
+        {% if is_country_manager %}
+        <a href="{% url 'create_project' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Créer un nouveau projet
+        </a>
+        {% endif %}
+    </div>
+
+    {% if projects %}
+    <div class="list-group">
+        {% for project in projects %}
+        <a href="{% url 'project_detail' project.id %}" class="list-group-item list-group-item-action mb-2">
+            <div class="d-flex w-100 justify-content-between align-items-center">
+                <h5 class="mb-1">{{ project.name }}</h5>
+                <div>
+                    <span class="badge bg-info">{{ project.status }}</span>
+                    <span class="badge bg-secondary">
+                        Sites: {{ project.sites.count }}
+                    </span>
+                    <span class="badge bg-success">
+                        Activités: {{ project.sites.all|get_total_tasks }}
+                    </span>
+                </div>
+            </div>
+            <p class="mb-1 text-muted">
+                Coordinateur: {{ project.coordinator.get_full_name }}
+            </p>
+            <small>
+                Dates: du {{ project.start_date|date:"d M Y" }} au {{ project.end_date|date:"d M Y" }}
+            </small>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info" role="alert">
+        Aucun projet n'est disponible pour vous pour le moment.
+    </div>
+    {% endif %}
+
+    <p class="mt-4"><small>*Total des activités pour un projet = Somme des activités de tous ses sites.</small></p>
+
+</div>
+{% endblock %}
