@@ -341,57 +341,7 @@ def employee_directory(request):
     }
     return render(request, 'intranet/employee_directory.html', context)
 
-# Tableau de bord RH
-@login_required
-@hr_required
-def hr_dashboard(request):
-    today = datetime.now().date()
-    start_of_week = today - timedelta(days=today.weekday())
-    start_of_month = today.replace(day=1)
-    
-    # Statistiques de base
-    stats = {
-        'total_employees': User.objects.count(),
-        'active_employees': User.objects.filter(is_active=True).count(),
-        'new_this_month': User.objects.filter(date_joined__gte=start_of_month).count(),
-        'pending_updates': ProfileUpdate.objects.filter(status='pending').count(),
-        'pending_leaves': LeaveRequest.objects.filter(status='PENDING').count(),
-        'pending_documents': DocumentRequest.objects.filter(status='PENDING').count(),
-    }
-    
-    # Statistiques par département
-    departments_stats = Department.objects.annotate(
-        employee_count=Count('user'),
-        active_count=Count('user', filter=Q(user__is_active=True))
-    )
-    
-    # Évolution mensuelle
-    monthly_stats = []
-    for i in range(6):
-        month_date = start_of_month - timedelta(days=30*i)
-        count = User.objects.filter(
-            date_joined__month=month_date.month, 
-            date_joined__year=month_date.year
-        ).count()
-        monthly_stats.append({
-            'month': month_date.strftime('%b %Y'), 
-            'count': count
-        })
-    
-    # Documents les plus demandés
-    popular_documents = DocumentType.objects.annotate(
-        request_count=Count('requests')
-    ).order_by('-request_count')[:5]
 
-    context = {
-        'stats': stats,
-        'departments_stats': departments_stats,
-        'monthly_stats': monthly_stats,
-        'popular_documents': popular_documents,
-        'title': 'Tableau de bord RH'
-    }
-    
-    return render(request, 'intranet/hr_dashboard.html', context)
 
 
 def create_notification(user, title, message, notification_type='info', link=None):
@@ -740,11 +690,8 @@ def reject_update(request, update_id):
 @login_required
 @user_passes_test(lambda u: u.is_staff or u.is_superuser)
 def edit_employee(request, employee_id):
-    """
-    Permet de modifier les informations de base d'un employé.
-    """
-    employee = get_object_or_404(User, pk=employee_id)
-    
+    """Modifie les informations d'un employé existant."""
+    employee = get_object_or_404(User, id=employee_id)
     if request.method == 'POST':
         form = SimplifiedEmployeeRegistrationForm(request.POST, instance=employee)
         if form.is_valid():
@@ -753,11 +700,7 @@ def edit_employee(request, employee_id):
             return redirect('employee_directory')
     else:
         form = SimplifiedEmployeeRegistrationForm(instance=employee)
-        
-    context = {
-        'form': form,
-        'employee': employee,
-    }
+    context = {'form': form, 'employee': employee}
     return render(request, 'intranet/edit_employee.html', context)
 
 
@@ -1270,3 +1213,123 @@ def site_list_view(request):
         'sites': sites,
     }
     return render(request, 'intranet/site_list.html', context)
+
+@login_required
+def dashboard_view(request):
+    user = request.user
+    if user.groups.filter(name='Ressources Humaines').exists():
+        return hr_dashboard(request)  # Ou rend un template RH spécifique
+    elif user.groups.filter(name='Coordinateur de Projet').exists():
+        return coordinator_dashboard(request)  # Dashboard pour managers/team leads
+    elif user.job_role.name == 'Team Lead':  # Si basé sur job_role
+        return team_lead_dashboard(request)
+    else:
+        return render(request, 'intranet/default_dashboard.html', {'user': user})  # Dashboard par défaut
+    
+    # Tableau de bord RH
+
+# Ajoute ces vues après dashboard_view dans views.py
+
+
+@login_required
+def hr_dashboard(request):
+    """Dashboard pour RH : stats employés, approbations, etc."""
+    hr_stats = {
+        'total_employees': User.objects.count(),
+        'active_employees': User.objects.filter(is_active=True).count(),
+        'pending_updates': ProfileUpdate.objects.filter(status='pending').count(),
+        'pending_leaves': LeaveRequest.objects.filter(status='pending').count(),
+        'pending_documents': DocumentRequest.objects.filter(status='pending').count(),
+        'new_this_month': User.objects.filter(date_joined__month=date.today().month).count(),
+    }
+    # Données pour un graphique en barres
+    chart_data = {
+        'labels': ['Total', 'Actifs', 'Mises à jour', 'Congés', 'Docs', 'Nouveaux'],
+        'datasets': [{
+            'label': 'Statistiques RH',
+            'data': [
+                hr_stats['total_employees'],
+                hr_stats['active_employees'],
+                hr_stats['pending_updates'],
+                hr_stats['pending_leaves'],
+                hr_stats['pending_documents'],
+                hr_stats['new_this_month'],
+            ],
+            'backgroundColor': 'rgba(75, 192, 192, 0.2)',
+            'borderColor': 'rgba(75, 192, 192, 1)',
+            'borderWidth': 1,
+        }]
+    }
+    context = {
+        'hr_stats': hr_stats,
+        'chart_data': chart_data,
+        'latest_notifications': Notification.objects.filter(user=request.user, is_read=False)[:5],
+    }
+    return render(request, 'intranet/hr_dashboard.html', context)
+
+@login_required
+def coordinator_dashboard(request):
+    """Dashboard pour Coordinateurs de Projet : stats projets, équipes."""
+    user_projects = Project.objects.filter(Q(coordinator=request.user) | Q(team_members=request.user)).distinct()
+    stats = {
+        'total_projects': user_projects.count(),
+        'ongoing_projects': user_projects.filter(status='in_progress').count(),
+        'team_members_count': user_projects.aggregate(total=Count('team_members', distinct=True))['total'],
+        'pending_tasks': Task.objects.filter(site__project__in=user_projects, status='À FAIRE').count(),
+    }
+    chart_data = {
+        'labels': ['Projets totaux', 'En cours', 'Tâches en attente'],
+        'datasets': [{
+            'data': [stats['total_projects'], stats['ongoing_projects'], stats['pending_tasks']],
+            'backgroundColor': ['#FF6384', '#36A2EB', '#FFCE56'],
+        }]
+    }
+    context = {
+        'stats': stats,
+        'chart_data': chart_data,
+        'recent_projects': user_projects.order_by('-created_at')[:5],
+        'unread_notifications': Notification.objects.filter(user=request.user, is_read=False).count(),  # Correction ici
+    }
+    return render(request, 'intranet/coordinator_dashboard.html', context)
+
+@login_required
+
+def team_lead_dashboard(request):
+    """Dashboard pour Team Leads : tâches assignées, progrès sites."""
+    assigned_tasks = Task.objects.filter(assigned_to=request.user)
+    stats = {
+        'total_tasks': assigned_tasks.count(),
+        'in_progress_tasks': assigned_tasks.filter(status='EN COURS').count(),
+        'due_soon_tasks': assigned_tasks.filter(due_date__lte=timezone.now() + timedelta(days=7)).count(),
+        'sites_involved': Site.objects.filter(tasks__assigned_to=request.user).distinct().count(),
+    }
+    chart_data = {
+        'labels': ['Total', 'En cours', 'Bientôt dus'],
+        'datasets': [{
+            'label': 'Tâches',
+            'data': [stats['total_tasks'], stats['in_progress_tasks'], stats['due_soon_tasks']],
+            'fill': False,
+            'borderColor': 'rgb(75, 192, 192)',
+            'tension': 0.1,
+        }]
+    }
+    context = {
+        'stats': stats,
+        'chart_data': chart_data,
+        'assigned_tasks': assigned_tasks.order_by('due_date')[:10],
+        'unread_notifications': Notification.objects.filter(user=request.user, is_read=False).count(),  # Correction ici
+    }
+    return render(request, 'intranet/team_lead_dashboard.html', context)
+
+# Ajoute une vue défaut si besoin
+@login_required
+def default_dashboard(request):
+    """Dashboard par défaut pour employés standards."""
+    context = {
+        'my_documents_count': DocumentRequest.objects.filter(user=request.user).count(),
+        'my_leave_requests_count': LeaveRequest.objects.filter(user=request.user).count(),
+        'pending_documents_count': DocumentRequest.objects.filter(user=request.user, status='pending').count(),
+        'unread_notifications_count': Notification.objects.filter(recipient=request.user, is_read=False).count(),
+        # Réutilise des blocs de home.html
+    }
+    return render(request, 'intranet/default_dashboard.html', context)

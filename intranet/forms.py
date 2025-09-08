@@ -28,7 +28,6 @@ class SimplifiedEmployeeRegistrationForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ['first_name', 'last_name', 'email', 'departement', 'job_role', 'country', 'managed_countries', 'is_active']
-        
         widgets = {
             'managed_countries': FilteredSelectMultiple("Pays gérés", is_stacked=False),
         }
@@ -60,36 +59,21 @@ class SimplifiedEmployeeRegistrationForm(forms.ModelForm):
         self.fields['country'].required = False
         self.fields['managed_countries'].required = False
 
-    def clean_first_name(self):
-        first_name = self.cleaned_data.get('first_name')
-        if not first_name:
-            raise forms.ValidationError("Ce champ est obligatoire.")
-        return first_name
-
-    def clean_last_name(self):
-        last_name = self.cleaned_data.get('last_name')
-        if not last_name:
-            raise forms.ValidationError("Ce champ est obligatoire.")
-        return last_name
-        
     def save(self, commit=True):
         user = super().save(commit=False)
-        
-        # Correction pour générer un username unique avec le format prenom.nom
-        # On utilise .lower() pour s'assurer que le nom d'utilisateur est en minuscules
-        base_username = f"{user.first_name.lower()}.{user.last_name.lower()}"
-        username = base_username
-        counter = 1
-        while User.objects.filter(username=username).exists():
-            username = f"{base_username}{counter}"
-            counter += 1
-            
-        user.username = username
-        
-        user.employee_id = str(uuid.uuid4())[:8].upper()
-        chars = string.ascii_letters + string.digits
-        self.temp_password = ''.join(random.choice(chars) for _ in range(12))
-        user.set_password(self.temp_password)
+        # Ne génère un nouveau username que si l'instance est nouvelle
+        if not user.pk:  # Si c'est une création (pas de PK existant)
+            base_username = f"{user.first_name.lower()}.{user.last_name.lower()}"
+            username = base_username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+            user.username = username
+            user.employee_id = str(uuid.uuid4())[:8].upper()
+            chars = string.ascii_letters + string.digits
+            self.temp_password = ''.join(random.choice(chars) for _ in range(12))
+            user.set_password(self.temp_password)
         if commit:
             user.save()
         return user

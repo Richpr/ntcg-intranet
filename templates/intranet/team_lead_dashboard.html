@@ -1,0 +1,79 @@
+{% extends 'intranet/base.html' %}
+{% block content %}
+    <h1>Dashboard Team Lead</h1>
+    
+    <!-- Section des stats -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Tâches totales</h5>
+                    <p>{{ stats.total_tasks }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Tâches en cours</h5>
+                    <p>{{ stats.in_progress_tasks }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Tâches bientôt dues</h5>
+                    <p>{{ stats.due_soon_tasks }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Sites impliqués</h5>
+                    <p>{{ stats.sites_involved }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <canvas id="teamLeadChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+
+    <!-- Tâches assignées -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <h3>Tâches assignées</h3>
+            <ul>
+                {% for task in assigned_tasks %}
+                    <li>{{ task.title }} (Échéance: {{ task.due_date }})</li>
+                {% empty %}
+                    <li>Aucune tâche assignée.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var ctx = document.getElementById('teamLeadChart').getContext('2d');
+            var chartData = {{ chart_data|safe }};  // Utilise les données du contexte
+            var myChart = new Chart(ctx, {
+                type: 'line',  // Type de chart : line
+                data: chartData,
+                options: {
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        });
+    </script>
+{% endblock %}

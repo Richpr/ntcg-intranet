@@ -1,0 +1,77 @@
+{% extends 'intranet/base.html' %}
+{% block content %}
+    <h1>Dashboard Coordinateur (Manager)</h1>
+    
+    <!-- Section des stats -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Projets totaux</h5>
+                    <p>{{ stats.total_projects }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Projets en cours</h5>
+                    <p>{{ stats.ongoing_projects }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Membres d'équipe</h5>
+                    <p>{{ stats.team_members_count }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Tâches en attente</h5>
+                    <p>{{ stats.pending_tasks }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <canvas id="coordinatorChart" width="400" height="400"></canvas>
+        </div>
+    </div>
+
+    <!-- Projets récents -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <h3>Projets récents</h3>
+            <ul>
+                {% for project in recent_projects %}
+                    <li>{{ project.name }} (Statut: {{ project.status }})</li>
+                {% empty %}
+                    <li>Aucun projet récent.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var ctx = document.getElementById('coordinatorChart').getContext('2d');
+            var chartData = {{ chart_data|safe }};  // Utilise les données du contexte
+            var myChart = new Chart(ctx, {
+                type: 'doughnut',  // Type de chart : doughnut (camembert)
+                data: chartData,
+                options: {
+                    responsive: true,
+                }
+            });
+        });
+    </script>
+{% endblock %}

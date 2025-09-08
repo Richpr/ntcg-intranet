@@ -160,5 +160,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 AUTH_USER_MODEL = 'intranet.User'
 # URLs de connexion et de redirection après connexion
 LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'dashboard'
 LOGIN_REDIRECT_URL = 'home_view'
 LOGOUT_REDIRECT_URL = 'login' # Redirection après déconnexion

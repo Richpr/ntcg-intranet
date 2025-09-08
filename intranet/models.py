@@ -189,6 +189,7 @@ class Notification(models.Model):
     ]
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    
     title = models.CharField(max_length=200)
     message = models.TextField()
     notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES, default='info')

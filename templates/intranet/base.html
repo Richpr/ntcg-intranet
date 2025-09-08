@@ -434,7 +434,13 @@
             overflow-x: hidden !important;
         }
 
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
         {% block extra_css %}{% endblock %}
+        
+
+        
+
     </style>
 </head>
 <body>
@@ -515,10 +521,12 @@
                 
                 <ul class="nav nav-pills flex-column mb-auto" id="sidebar-nav-links">
                     <li class="nav-item">
-                        <a href="{% url 'home_view' %}" class="nav-link {% if request.resolver_match.url_name == 'home_view' %}active{% endif %} touch-feedback">
+                        <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'home_view' %}active{% endif %} touch-feedback">
                             <i class="fas fa-tachometer-alt"></i> Dashboard
                         </a>
                     </li>
+
+                    
 
                     <li class="nav-item">
                         <a class="nav-link touch-feedback" href="{% url 'submit_leave_request' %}">
@@ -924,7 +932,7 @@
         document.addEventListener('DOMContentLoaded', updateNotificationCount);
        
     </script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

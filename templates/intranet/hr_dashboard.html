@@ -1,0 +1,80 @@
+{% extends 'intranet/base.html' %}
+{% block content %}
+    <h1>Dashboard RH</h1>
+    
+    <!-- Section des stats -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Total employés</h5>
+                    <p>{{ hr_stats.total_employees }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Actifs</h5>
+                    <p>{{ hr_stats.active_employees }}</p>
+                </div>
+            </div>
+        </div>
+        <!-- Ajoute les autres stats de la même manière -->
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Mises à jour en attente</h5>
+                    <p>{{ hr_stats.pending_updates }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Nouveaux ce mois</h5>
+                    <p>{{ hr_stats.new_this_month }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <canvas id="hrChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+
+    <!-- Notifications récentes -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <h3>Dernières notifications</h3>
+            <ul>
+                {% for notification in latest_notifications %}
+                    <li>{{ notification.title }} - {{ notification.message }}</li>
+                {% empty %}
+                    <li>Aucune notification récente.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var ctx = document.getElementById('hrChart').getContext('2d');
+            var chartData = {{ chart_data|safe }};  // Utilise les données du contexte
+            var myChart = new Chart(ctx, {
+                type: 'bar',  // Type de chart : bar
+                data: chartData,
+                options: {
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        });
+    </script>
+{% endblock %}

@@ -14,6 +14,8 @@ urlpatterns = [
     path('api/statistics/', views.api_statistics, name='api_statistics'),
 
     # URLs pour la gestion des RH
+    # Ajoute au début des urlpatterns
+    path('dashboard/', views.dashboard_view, name='dashboard'),
     path('hr/dashboard/', views.hr_dashboard, name='hr_dashboard'),
     path('hr/bank-info/', views.employee_bank_info, name='employee_bank_info'),
     
