@@ -1,0 +1,58 @@
+{% extends 'intranet/base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}Mettre à jour la tâche : {{ task.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <a href="{% url 'site_detail' task.site.id %}" class="btn btn-secondary mb-3"><i class="fas fa-arrow-left"></i> Retour au site</a>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h1 class="card-title">Mise à jour de la tâche : {{ task.title }}</h1>
+            <p><strong>Statut actuel :</strong> <span class="badge bg-primary">{{ task.status }}</span></p>
+            <p><strong>Assignée à :</strong> {{ task.assigned_to.get_full_name }}</p>
+
+            <hr>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <h4 class="mb-3">Mettre à jour le statut</h4>
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ update_form|crispy }}
+                        <button type="submit" class="btn btn-success mt-3">Mettre à jour le statut</button>
+                    </form>
+                </div>
+
+                <div class="col-md-6">
+                    <h4 class="mb-3">Ajouter un rapport</h4>
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {{ report_form|crispy }}
+                        <button type="submit" class="btn btn-info mt-3">Ajouter le rapport</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h4 class="mb-3">Rapports de progression</h4>
+            {% if task.reports.all %}
+                <ul class="list-unstyled">
+                    {% for report in task.reports.all %}
+                        <li class="mb-3 p-3 border rounded">
+                            <p class="small text-muted mb-1">Par {{ report.reported_by.get_full_name }} le {{ report.created_at|date:"d M Y H:i" }}</p>
+                            {% if report.report_text %}<p>{{ report.report_text|linebreaksbr }}</p>{% endif %}
+                            {% if report.photo %}<img src="{{ report.photo.url }}" alt="Photo de l'avancement" class="img-fluid rounded mt-2" style="max-height: 200px;">{% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="alert alert-warning">Aucun rapport n'a encore été ajouté pour cette tâche.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

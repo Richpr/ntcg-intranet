@@ -1,0 +1,12 @@
+{% extends 'intranet/base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}Modifier le site : {{ site.name }}{% endblock %}
+
+{% block content %}
+    <h2>Modifier le site : {{ site.name }}</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form|crispy }}
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+    </form>
+{% endblock %}

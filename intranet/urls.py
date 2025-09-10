@@ -14,7 +14,6 @@ urlpatterns = [
     path('api/statistics/', views.api_statistics, name='api_statistics'),
 
     # URLs pour la gestion des RH
-    # Ajoute au début des urlpatterns
     path('dashboard/', views.dashboard_view, name='dashboard'),
     path('hr/dashboard/', views.hr_dashboard, name='hr_dashboard'),
     path('hr/bank-info/', views.employee_bank_info, name='employee_bank_info'),
@@ -25,7 +24,7 @@ urlpatterns = [
     path('my-documents/', views.my_document_requests, name='my_document_requests'),
     path('document-request/', views.request_document_view, name='request_document'),
     path('document-request/download/<int:request_id>/', views.download_document_view, name='download_document'),
-
+    
     # URLs pour les profils des employés
     path('profile/', views.profile_view, name='my_profile'),
     path('profile/<int:user_id>/', views.profile_view, name='user_profile'),
@@ -60,15 +59,21 @@ urlpatterns = [
     path('leave-request/mine/', views.my_leave_requests, name='my_leave_requests'),
     path('hr/leave-requests/', views.manage_leave_requests, name='manage_leave_requests'),
     path('hr/leave-requests/<int:request_id>/process/', views.process_leave_request, name='process_leave_request'),
-
-    # URLs pour la gestion des projets et sites
-    path('projects/', views.project_list, name='project_dashboard'),
+    
+    # URLs pour la gestion des projets, sites et tâches (bloc consolidé)
+    
+    path('projects/', views.project_list_view, name='project_dashboard'),
     path('projects/create/', views.create_project, name='create_project'),
     path('projects/<int:project_id>/', views.project_detail, name='project_detail'),
     path('projects/<int:project_id>/add-site/', views.add_site, name='add_site'),
     path('sites/', views.site_list_view, name='site_list'),
     path('sites/<int:site_id>/', views.site_detail, name='site_detail'),
     path('sites/<int:site_id>/add-task/', views.add_task, name='add_task'),
+    path('tasks/<int:task_id>/update/', views.update_task_progress, name='update_task_progress'),
+    path('sites/<int:site_id>/edit/', views.edit_site, name='edit_site'),
+    path('tasks/export/', views.export_user_tasks_csv, name='export_user_tasks_csv'),
+    path('team-lead/dashboard/', views.team_lead_dashboard, name='team_lead_dashboard'),
+    path('team-lead/sites/', views.team_lead_sites, name='team_lead_sites'),
 ]
 
 # Cette ligne est CRUCIALE pour le développement !

@@ -3,23 +3,51 @@
 {% block title %}Liste des Sites{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2 class="mb-4">Liste des Sites</h2>
+    <h2>Liste des Sites</h2>
 
     {% if sites %}
-    <div class="list-group">
-        {% for site in sites %}
-        <a href="{% url 'site_detail' site.id %}" class="list-group-item list-group-item-action mb-2">
-            <h5 class="mb-1">{{ site.name }}</h5>
-            <p class="mb-1 text-muted">Projet : {{ site.project.name }}</p>
-            <small>Localisation : {{ site.location }}</small>
-        </a>
-        {% endfor %}
-    </div>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Nom du site</th>
+                    <th>Projet</th>
+                    <th>Localisation</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for site in sites %}
+                <tr>
+                    <td><a href="{% url 'site_detail' site.id %}">{{ site.name }}</a></td>
+                    <td>{{ site.project.name }}</td>
+                    <td>{{ site.location|default:"Non spécifiée" }}</td>
+                    <td><a href="{% url 'site_detail' site.id %}" class="btn btn-sm btn-primary">Voir détails</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if sites.has_other_pages %}
+            <nav aria-label="Pagination">
+                <ul class="pagination">
+                    {% if sites.has_previous %}
+                        <li class="nav-item"><a class="page-link" href="?page={{ sites.previous_page_number }}">Précédent</a></li>
+                    {% endif %}
+                    {% for i in sites.paginator.page_range %}
+                        {% if sites.number == i %}
+                            <li class="nav-item active"><a class="page-link" href="#">{{ i }}</a></li>
+                        {% else %}
+                            <li class="nav-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if sites.has_next %}
+                        <li class="nav-item"><a class="page-link" href="?page={{ sites.next_page_number }}">Suivant</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
     {% else %}
-    <div class="alert alert-info" role="alert">
-        Aucun site n'est disponible pour vous pour le moment.
-    </div>
+        <p>Aucun site ne vous est assigné pour le moment.</p>
     {% endif %}
-</div>
+
 {% endblock %}

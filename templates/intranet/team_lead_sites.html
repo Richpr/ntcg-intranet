@@ -1,0 +1,37 @@
+{% extends 'intranet/base.html' %}
+{% block title %}Mes Sites - Team Lead{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">📋 Mes Sites Assignés</h2>
+
+    {% if sites %}
+    <div class="row">
+        {% for site in sites %}
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">{{ site.name }}</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Projet:</strong> {{ site.project.name }}</p>
+                    <p><strong>Localisation:</strong> {{ site.location|default:"Non spécifiée" }}</p>
+                    <p><strong>ID Site:</strong> {{ site.site_id|default:"N/A" }}</p>
+                    <p><strong>Tâches assignées:</strong> {{ site.tasks.filter(assigned_to=request.user).count }}</p>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'site_detail' site.id %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-eye"></i> Voir les détails
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> Aucun site ne vous est actuellement assigné.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

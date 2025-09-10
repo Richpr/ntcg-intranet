@@ -1,80 +1,97 @@
 {% extends 'intranet/base.html' %}
 {% block content %}
-    <h1>Dashboard RH</h1>
-    
-    <!-- Section des stats -->
-    <div class="row">
+    Dashboard RH
+
+    <div class="row mb-4">
         <div class="col-md-3">
-            <div class="card">
+            <div class="card bg-primary text-white">
                 <div class="card-body">
-                    <h5>Total employés</h5>
-                    <p>{{ hr_stats.total_employees }}</p>
+                    <h5 class="card-title">Total employés</h5>
+                    <p class="card-text fs-3">{{ hr_stats.total_employees }}</p>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card">
+            <div class="card bg-success text-white">
                 <div class="card-body">
-                    <h5>Actifs</h5>
-                    <p>{{ hr_stats.active_employees }}</p>
-                </div>
-            </div>
-        </div>
-        <!-- Ajoute les autres stats de la même manière -->
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5>Mises à jour en attente</h5>
-                    <p>{{ hr_stats.pending_updates }}</p>
+                    <h5 class="card-title">Actifs</h5>
+                    <p class="card-text fs-3">{{ hr_stats.active_employees }}</p>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card">
+            <div class="card bg-warning text-dark">
                 <div class="card-body">
-                    <h5>Nouveaux ce mois</h5>
-                    <p>{{ hr_stats.new_this_month }}</p>
+                    <h5 class="card-title">Mises à jour en attente</h5>
+                    <p class="card-text fs-3">{{ hr_stats.pending_updates }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Nouveaux ce mois</h5>
+                    <p class="card-text fs-3">{{ hr_stats.new_this_month }}</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Chart -->
-    <div class="row mt-4">
-        <div class="col-md-8">
-            <canvas id="hrChart" width="400" height="200"></canvas>
-        </div>
-    </div>
-
-    <!-- Notifications récentes -->
-    <div class="row mt-4">
+    <!-- Ajout du graphique -->
+    <div class="row mb-4">
         <div class="col-md-12">
-            <h3>Dernières notifications</h3>
-            <ul>
-                {% for notification in latest_notifications %}
-                    <li>{{ notification.title }} - {{ notification.message }}</li>
-                {% empty %}
-                    <li>Aucune notification récente.</li>
-                {% endfor %}
-            </ul>
+            <div class="card">
+                <div class="card-header">Statistiques RH</div>
+                <div class="card-body">
+                    <canvas id="hrStatsChart" width="400" height="200"></canvas>
+                </div>
+            </div>
         </div>
     </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Dernières notifications</div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        {% for notification in latest_notifications %}
+                            <li class="list-group-item">{{ notification.title }} - {{ notification.message }}</li>
+                        {% empty %}
+                            <li class="list-group-item">Aucune notification récente.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
 {% endblock %}
 
 {% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var ctx = document.getElementById('hrChart').getContext('2d');
-            var chartData = {{ chart_data|safe }};  // Utilise les données du contexte
-            var myChart = new Chart(ctx, {
-                type: 'bar',  // Type de chart : bar
-                data: chartData,
-                options: {
-                    scales: {
-                        y: { beginAtZero: true }
-                    }
+        const ctx = document.getElementById('hrStatsChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Total employés', 'Actifs', 'Nouveaux', 'Mises à jour en attente'],
+                datasets: [{
+                    label: 'Statistiques RH',
+                    data: [
+                        {{ hr_stats.total_employees }},
+                        {{ hr_stats.active_employees }},
+                        {{ hr_stats.new_this_month }},
+                        {{ hr_stats.pending_updates }}
+                    ],
+                    backgroundColor: ['#4BC0C0', '#36A2EB', '#FFCE56', '#FF6384'],
+                }]
+            },
+            options: {
+                scales: {
+                    y: { beginAtZero: true }
                 }
-            });
+            }
         });
     </script>
 {% endblock %}

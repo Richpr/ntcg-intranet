@@ -93,6 +93,7 @@ TEMPLATES = [
                 'intranet.context_processors.is_rh_group',
                 'intranet.context_processors.is_project_coordinator', 
                 'intranet.context_processors.unread_notifications',
+                'intranet.context_processors.is_team_lead_group',
             ],
         },
     },

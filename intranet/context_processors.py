@@ -16,3 +16,9 @@ def unread_notifications(request):
     else:
         unread_count = 0
     return {'unread_notifications_count': unread_count}
+
+def is_team_lead_group(request):
+    is_team_lead = request.user.groups.filter(name='Team Lead').exists()
+    return {'is_team_lead': is_team_lead}
+
+

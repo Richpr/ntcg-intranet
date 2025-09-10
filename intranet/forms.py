@@ -14,6 +14,7 @@ from django_countries.widgets import CountrySelectWidget
 from .models import ProfileUpdate, Department, JobRole, PieceType, ContractType, BankInfo, Document, DocumentType, Country
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from .models import Project, Site, Task 
+from .models import TaskReport
 
 
 from .models import Project, Site, Task  # Assurez-vous d'importer les nouveaux modèles
@@ -378,5 +379,29 @@ class TaskForm(forms.ModelForm):
             'due_date',
             'status',
             Submit('submit', 'Ajouter l\'activité', css_class='btn-primary mt-3')
+
+        )
+
+class TaskUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Task
+        fields = ['status']
+
+class TaskReportForm(forms.ModelForm):
+    class Meta:
+        model = TaskReport
+        fields = ['report_text', 'photo']
+        widgets = {
+            'report_text': forms.Textarea(attrs={'rows': 4}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.layout = Layout(
+            'report_text',
+            'photo',
+            Submit('submit', 'Ajouter le rapport', css_class='btn-primary mt-3')
         )
 

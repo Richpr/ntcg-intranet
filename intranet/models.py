@@ -586,3 +586,29 @@ class Task(models.Model):
     class Meta:
         verbose_name = "Activité"
         verbose_name_plural = "Activités"
+
+
+class TaskReport(models.Model):
+    task = models.ForeignKey(
+        'Task',
+        on_delete=models.CASCADE,
+        related_name='reports',
+        verbose_name="Tâche associée"
+    )
+    report_text = models.TextField(verbose_name="Description de l'avancement", blank=True, null=True)
+    photo = models.ImageField(upload_to='task_photos/', verbose_name="Photo de l'avancement", blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    reported_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name="Rapporté par"
+    )
+
+    def __str__(self):
+        return f"Rapport pour {self.task.title} par {self.reported_by.get_full_name()}"
+
+    class Meta:
+        verbose_name = "Rapport de Tâche"
+        verbose_name_plural = "Rapports de Tâche"
+        ordering = ['-created_at']

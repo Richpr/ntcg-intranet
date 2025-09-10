@@ -520,13 +520,13 @@
                 </div>
                 
                 <ul class="nav nav-pills flex-column mb-auto" id="sidebar-nav-links">
-                    <li class="nav-item">
+
+
+                   <li class="nav-item">
                         <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'home_view' %}active{% endif %} touch-feedback">
                             <i class="fas fa-tachometer-alt"></i> Dashboard
                         </a>
                     </li>
-
-                    
 
                     <li class="nav-item">
                         <a class="nav-link touch-feedback" href="{% url 'submit_leave_request' %}">
@@ -566,27 +566,64 @@
                     </li>
                     {% endif %}
 
-                    {% if is_coordinator %}
-                    <li class="nav-item mt-3">
-                        <small class="text-muted px-3">GESTION DES PROJETS</small>
-                    </li>
-                    
-                   
 
+
+                   <!-- ==================== -->
+                    <!-- SECTION TEAM LEAD -->
+                    <!-- ==================== -->
+                    {% if request.user|has_group:"Team Lead" %}
+                    <li class="nav-item mt-3">
+                        <small class="text-muted px-3"><strong>TEAM LEAD</strong></small>
+                    </li>
+
+                    <!-- Dashboard Team Lead -->
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'project_dashboard' %}">
+                        <a href="{% url 'team_lead_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'team_lead_dashboard' %}active{% endif %} touch-feedback">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                    </li>
+
+                    <!-- Mes Sites (SPÉCIFIQUE Team Lead) -->
+                    <li class="nav-item">
+                        <a href="{% url 'team_lead_sites' %}" class="nav-link {% if request.resolver_match.url_name == 'team_lead_sites' %}active{% endif %} touch-feedback">
+                            <i class="fas fa-map-marked-alt"></i> Mes Sites
+                        </a>
+                    </li>
+
+                    <!-- Mes Tâches -->
+                    <li class="nav-item">
+                        <a href="#" class="nav-link touch-feedback">
+                            <i class="fas fa-tasks"></i> M
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <!-- ==================== -->
+                    <!-- SECTION COORDINATEUR -->
+                    <!-- ==================== -->
+                    {% if request.user|has_group:"Coordinateur de Projet" %}
+                    <li class="nav-item mt-3">
+                        <small class="text-muted px-3"><strong>COORDINATION PROJET</strong></small>
+                    </li>
+
+                    <!-- Projets (pour Coordinateurs) -->
+                    <li class="nav-item">
+                        <a href="{% url 'project_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'project_dashboard' %}active{% endif %} touch-feedback">
                             <i class="fas fa-project-diagram"></i> Projets
                         </a>
                     </li>
+
+                    <!-- Sites (pour Coordinateurs) -->
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'site_list' %}">
-                            <i class="fas fa-map-marked-alt"></i> Sites
+                        <a href="{% url 'site_list' %}" class="nav-link {% if request.resolver_match.url_name == 'site_list' %}active{% endif %} touch-feedback">
+                            <i class="fas fa-map-marked-alt"></i> Tous les Sites
                         </a>
                     </li>
-                    
-
                     {% endif %}
 
+                    <!-- ==================== -->
+                    <!-- SECTION RESSOURCES HUMAINE -->
+                    <!-- ==================== -->
                     {% if is_rh %}
                     <li class="nav-item mt-3">
                         <small class="text-muted px-3">RESSOURCES HUMAINES</small>
@@ -644,28 +681,46 @@
                     </li>
                     {% endif %}
 
-                    
-                
 
+                    <!-- ==================== -->
+                    <!-- SECTION COUNTRY MANAGER -->
+                    <!-- ==================== -->
                     {% if request.user|has_group:"Country Manager" %}
+                    <li class="nav-item mt-3">
+                        <small class="text-muted px-3"><strong>COUNTRY MANAGEMENT</strong></small>
+                    </li>
 
-                        <li class="nav-item mt-3">
-                            <small class="text-muted px-3">COUNTRY MANAGEMENT</small>
-                        </li>
-
-                        <li class="nav-item">
+                    <!-- Tableau de bord Country Manager -->
+                    <li class="nav-item">
                         <a href="{% url 'project_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'project_dashboard' %}active{% endif %} touch-feedback">
-                            <i class="fa-solid fa-briefcase"></i> Tableau de bord
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'create_project' %}">
-                                <i class="fas fa-plus"></i> Nouveau Projet
-                            </a>
-                        </li>
-                        {% endif %}
+                            <i class="fas fa-briefcase"></i> Tableau de bord
+                        </a>
+                    </li>
 
-                        {% if request.user|has_group:"Country Manager" or request.user|has_group:"Coordinateur de Projet" %}
+                    <!-- Créer projet -->
+                    <li class="nav-item">
+                        <a href="{% url 'create_project' %}" class="nav-link {% if request.resolver_match.url_name == 'create_project' %}active{% endif %} touch-feedback">
+                            <i class="fas fa-plus"></i> Nouveau Projet
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <!-- ==================== -->
+                    <!-- SECTION  SUPER ADMIN  -->
+                    <!-- ==================== -->
+                     {% if user.is_superuser %}
+                    <li class="nav-item mt-3">
+                        <small class="text-muted px-3">ADMINISTRATION</small>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/admin" class="nav-link touch-feedback">
+                            <i class="fas fa-cog"></i> Administration
+                        </a>
+                    </li>
+                    {% endif %}
+
+
+                    {% if request.user|has_group:"Country Manager" or request.user|has_group:"Coordinateur de Projet" %}
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'project_dashboard' %}">
                                 <i class="fas fa-project-diagram"></i> Projets
@@ -686,17 +741,6 @@
 
 
 
-                    
-                    {% if user.is_superuser %}
-                    <li class="nav-item mt-3">
-                        <small class="text-muted px-3">ADMINISTRATION</small>
-                    </li>
-                    <li class="nav-item">
-                        <a href="/admin" class="nav-link touch-feedback">
-                            <i class="fas fa-cog"></i> Administration
-                        </a>
-                    </li>
-                    {% endif %}
                 </ul>
             </div>
         </nav>
@@ -910,20 +954,25 @@
 
    
         function updateNotificationCount() {
-            fetch('/api/statistics/')
-                .then(response => response.json())
-                .then(data => {
-                    const countElement = document.querySelector('.notification-count');
-                    const count = data.unread_notifications_count;
-                    if (count > 0) {
-                        countElement.textContent = count;
-                        countElement.style.display = 'inline'; // ou 'block'
-                    } else {
-                        countElement.style.display = 'none';
-                    }
-                })
-                .catch(error => console.error('Erreur lors de la récupération des notifications:', error));
-        }
+    fetch('{% url "api_statistics" %}')  // Utiliser le nom d'URL correct
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            const countElement = document.querySelector('.notification-count');
+            if (countElement && data.unread_notifications_count > 0) {
+                countElement.textContent = data.unread_notifications_count;
+                countElement.style.display = 'inline';
+            } else if (countElement) {
+                countElement.style.display = 'none';
+            }
+        })
+        .catch(error => console.error('Erreur:', error));
+}
+
 
         // Mettre à jour le compteur toutes les 30 secondes
         setInterval(updateNotificationCount, 30000);

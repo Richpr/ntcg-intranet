@@ -22,6 +22,7 @@ from .forms import SimplifiedEmployeeRegistrationForm, ProfileUpdateForm, Docume
 from .decorators import hr_required
 from .models import Document, Post, ProfileUpdate, BadgeDefinition, EmployeeBadge, Country
 import os
+from .forms import TaskUpdateForm, TaskReportForm 
 from datetime import datetime, date
 from django.db import models
 from django.core.files.base import ContentFile
@@ -54,6 +55,7 @@ from .models import ProfileUpdate, User  # Assure-toi que le modèle User est im
 from django.contrib.auth.decorators import login_required
 from .models import User, Department
 from .decorators import hr_required, country_manager_required, coordinator_required
+
 # Référence sécurisée à votre modèle d'utilisateur
 User = get_user_model()
 
@@ -169,12 +171,17 @@ def home_view(request):
         years_of_service = request.user.years_of_service
     else:
         years_of_service = 0
+
+        # Récupérer le compte des mises à jour en attente
+    pending_updates_count = request.user.profile_updates.filter(status='pending').count()
+    
     
     # Context de base
     context = {
         'latest_posts': latest_posts,
         'is_hr': is_hr,
-        'years_of_service': years_of_service,
+        'pending_updates_count': pending_updates_count,  # Ajouter cette ligne
+        'years_of_service': request.user.years_of_service,
     }
     
     # Statistiques personnelles
@@ -1051,21 +1058,16 @@ def project_detail(request, project_id):
 
 @login_required
 def site_detail(request, site_id):
-    site = get_object_or_404(Site, id=site_id)
-    
-    # Vérification des permissions
-    # L'utilisateur doit être le coordinateur ou un membre de l'équipe du projet parent
+    site = get_object_or_404(Site, pk=site_id)
     project = site.project
-    if not (request.user == project.coordinator or request.user in project.team_members.all()):
-        raise PermissionDenied("Vous n'avez pas la permission de voir ce site.")
-        
-    # Récupérer toutes les tâches liées à ce site
-    tasks = site.tasks.all().order_by('due_date')
-
+    
+    # Récupérer toutes les tâches associées à ce site
+    tasks = site.tasks.all()  # Correction ici
+    
     context = {
         'site': site,
-        'project': project, # Utile pour le lien de retour
-        'tasks': tasks,
+        'project': project,
+        'tasks': tasks  # Ajouter cette ligne
     }
     return render(request, 'intranet/site_detail.html', context)
 
@@ -1115,21 +1117,18 @@ def add_site(request, project_id):
     return render(request, 'intranet/add_site.html', context)
 
 @login_required
+@coordinator_required
 def add_task(request, site_id):
-    site = get_object_or_404(Site, id=site_id)
+    site = get_object_or_404(Site, pk=site_id)
     project = site.project
 
-    # Vérification des permissions : seul le coordinateur du projet peut ajouter des tâches
-    if not request.user == project.coordinator:
-        raise PermissionDenied("Vous n'avez pas la permission d'ajouter une tâche à ce site.")
-        
     if request.method == 'POST':
         form = TaskForm(request.POST)
         if form.is_valid():
             task = form.save(commit=False)
-            task.site = site
+            task.site = site  # C'est la ligne cruciale pour lier la tâche au site
             task.save()
-            messages.success(request, f"L'activité '{task.title}' a été ajoutée avec succès.")
+            messages.success(request, "L'activité a été ajoutée avec succès.")
             return redirect('site_detail', site_id=site.id)
     else:
         form = TaskForm()
@@ -1137,7 +1136,7 @@ def add_task(request, site_id):
     context = {
         'form': form,
         'site': site,
-        'project': project,
+        'project': project
     }
     return render(request, 'intranet/add_task.html', context)
 
@@ -1179,40 +1178,41 @@ def my_profile_updates(request):
     }
     return render(request, 'intranet/my_profile_updates.html', context)
 
+
 @login_required
-def project_list(request):
-    """
-    Affiche une liste de tous les projets en fonction du rôle de l'utilisateur.
-    """
-    projects = Project.objects.all().order_by('-created_at')
-    return render(request, 'intranet/project_list.html', {'projects': projects})
+def project_list_view(request):
+    if request.user.groups.filter(name='Country Manager').exists():
+        projects = Project.objects.all().order_by('-created_at')
+        is_country_manager = True
+    elif request.user.groups.filter(name='Coordinateur de Projet').exists():
+        projects = Project.objects.filter(
+            Q(coordinator=request.user) | Q(team_members=request.user)
+        ).distinct().order_by('-created_at')
+        is_country_manager = False
+    else:
+        projects = Project.objects.none()
+        is_country_manager = False
+
+    context = {
+        'projects': projects,
+        'is_country_manager': is_country_manager,  # Ajouter cette ligne
+        'is_coordinator': request.user.groups.filter(name='Coordinateur de Projet').exists(),
+    }
+    return render(request, 'intranet/project_list.html', context)
 
 @login_required
 def site_list_view(request):
-    """
-    Affiche la liste des sites en fonction du rôle de l'utilisateur.
-    """
-    user = request.user
-    sites = Site.objects.none()
-
-    if user.groups.filter(name='Country Manager').exists():
-        
-        # Un Country Manager voit tous les sites des projets de son pays
-        if user.country:
-            # Cette requête est maintenant valide car le modèle Project a un champ country
-            sites = Site.objects.filter(project__country=user.country).order_by('name')
-        else:
-            # Gérer le cas où le manager n'a pas de pays associé
-            sites = Site.objects.none()
-
-    elif user.groups.filter(name='Coordinateur de Projet').exists():
-        user_projects = Project.objects.filter(Q(coordinator=user) | Q(team_members=user)).distinct()
-        sites = Site.objects.filter(project__in=user_projects).order_by('name')
-
-    context = {
-        'sites': sites,
-    }
-    return render(request, 'intranet/site_list.html', context)
+    # Filtrer les sites auxquels l'utilisateur est associé via des tâches
+    sites = Site.objects.filter(
+        tasks__assigned_to=request.user
+    ).select_related('project').distinct()
+    
+    # Pagination
+    paginator = Paginator(sites, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'intranet/site_list.html', {'sites': page_obj})
 
 @login_required
 def dashboard_view(request):
@@ -1292,32 +1292,42 @@ def coordinator_dashboard(request):
     }
     return render(request, 'intranet/coordinator_dashboard.html', context)
 
-@login_required
 
+@login_required
 def team_lead_dashboard(request):
-    """Dashboard pour Team Leads : tâches assignées, progrès sites."""
-    assigned_tasks = Task.objects.filter(assigned_to=request.user)
+    # Base queryset without slicing
+    base_tasks = Task.objects.filter(assigned_to=request.user).select_related('site__project')
+    
+    # Compute counts on the full queryset
     stats = {
-        'total_tasks': assigned_tasks.count(),
-        'in_progress_tasks': assigned_tasks.filter(status='EN COURS').count(),
-        'due_soon_tasks': assigned_tasks.filter(due_date__lte=timezone.now() + timedelta(days=7)).count(),
-        'sites_involved': Site.objects.filter(tasks__assigned_to=request.user).distinct().count(),
+        'total_tasks': base_tasks.count(),
+        'in_progress_tasks': base_tasks.filter(status='EN COURS').count(),
+        'due_soon_tasks': base_tasks.filter(due_date__lte=timezone.now() + timedelta(days=7)).count(),
+        'sites_involved': Site.objects.filter(tasks__assigned_to=request.user).select_related('project').distinct().count(),
     }
+    
+    # Apply slicing only for the tasks to display
+    assigned_tasks = base_tasks.order_by('due_date')[:10]
+    sites_involved = Site.objects.filter(tasks__assigned_to=request.user).select_related('project').distinct()
+
+     # Correction du format pour Chart.js
     chart_data = {
         'labels': ['Total', 'En cours', 'Bientôt dus'],
         'datasets': [{
             'label': 'Tâches',
             'data': [stats['total_tasks'], stats['in_progress_tasks'], stats['due_soon_tasks']],
-            'fill': False,
+            'backgroundColor': ['#FF6384', '#36A2EB', '#FFCE56'],
             'borderColor': 'rgb(75, 192, 192)',
             'tension': 0.1,
         }]
     }
+    
     context = {
         'stats': stats,
-        'chart_data': chart_data,
-        'assigned_tasks': assigned_tasks.order_by('due_date')[:10],
-        'unread_notifications': Notification.objects.filter(user=request.user, is_read=False).count(),  # Correction ici
+        'chart_data': json.dumps(chart_data),  # Convertir en JSON
+        'assigned_tasks': base_tasks.order_by('due_date')[:10],
+        'sites_involved': Site.objects.filter(tasks__assigned_to=request.user).select_related('project').distinct(),
+        'unread_notifications_count': Notification.objects.filter(user=request.user, is_read=False).count(),
     }
     return render(request, 'intranet/team_lead_dashboard.html', context)
 
@@ -1333,3 +1343,102 @@ def default_dashboard(request):
         # Réutilise des blocs de home.html
     }
     return render(request, 'intranet/default_dashboard.html', context)
+
+
+@login_required
+def update_task_progress(request, task_id):
+    task = get_object_or_404(Task, id=task_id)
+
+    # On s'assure que seul le Team Lead assigné peut modifier la tâche
+    if request.user != task.assigned_to:
+        messages.error(request, "Vous n'êtes pas autorisé à modifier cette tâche.")
+        return redirect('site_detail', site_id=task.site.id)
+
+    if request.method == 'POST':
+        # Mise à jour du statut
+        update_form = TaskUpdateForm(request.POST, instance=task)
+        # Création d'un rapport avec photo
+        report_form = TaskReportForm(request.POST, request.FILES)
+
+        if update_form.is_valid():
+            update_form.save()
+            messages.success(request, "Le statut de la tâche a été mis à jour.")
+
+        if report_form.is_valid() and (report_form.cleaned_data['report_text'] or report_form.cleaned_data['photo']):
+            report = report_form.save(commit=False)
+            report.task = task
+            report.reported_by = request.user
+            report.save()
+            messages.success(request, "Le rapport a été ajouté avec succès.")
+
+        return redirect('site_detail', site_id=task.site.id)
+
+    else:
+        update_form = TaskUpdateForm(instance=task)
+        report_form = TaskReportForm()
+
+    context = {
+        'task': task,
+        'update_form': update_form,
+        'report_form': report_form
+    }
+    return render(request, 'intranet/update_task_progress.html', context)
+
+
+@login_required
+@coordinator_required
+def edit_site(request, site_id):
+    site = get_object_or_404(Site, id=site_id)
+    if request.user != site.project.coordinator:
+        raise PermissionDenied
+    if request.method == 'POST':
+        form = SiteForm(request.POST, instance=site)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Site mis à jour avec succès.")
+            return redirect('site_detail', site_id=site.id)
+    else:
+        form = SiteForm(instance=site)
+    return render(request, 'intranet/edit_site.html', {'form': form, 'site': site})
+
+from django.http import HttpResponse
+import csv
+from .models import Task
+
+@login_required
+def export_user_tasks_csv(request):
+    # Récupérer les tâches assignées à l'utilisateur connecté
+    tasks = Task.objects.filter(assigned_to=request.user).select_related('site__project')
+    
+    # Créer la réponse HTTP avec le type de contenu CSV
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="my_tasks_export.csv"'
+    
+    # Écrire les données dans le fichier CSV
+    writer = csv.writer(response)
+    writer.writerow(['Titre', 'Site', 'Projet', 'Statut', 'Date d’échéance'])
+    for task in tasks:
+        writer.writerow([
+            task.title,
+            task.site.name,
+            task.site.project.name,
+            task.status,
+            task.due_date
+        ])
+    
+    return response
+
+
+@login_required
+def team_lead_sites(request):
+    """Vue spéciale pour afficher les sites du Team Lead"""
+    # Sites où l'utilisateur est assigné à des tâches
+    sites = Site.objects.filter(
+        tasks__assigned_to=request.user
+    ).select_related('project').distinct()
+    
+    context = {
+        'sites': sites,
+        'title': 'Mes Sites - Team Lead'
+    }
+    return render(request, 'intranet/team_lead_sites.html', context)

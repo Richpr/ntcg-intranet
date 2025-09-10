@@ -3,9 +3,16 @@
 
 {% block content %}
 <div class="container mt-4">
-    <a href="{% url 'project_detail' project.id %}" class="btn btn-secondary mb-3">
+    <a href="{% url 'project_detail' site.project.id %}" class="btn btn-secondary mb-3">
         <i class="fas fa-arrow-left"></i> Retour au projet
     </a>
+
+    <div class="card-header">
+        {{ site.name }}
+        {% if request.user == site.project.coordinator %}
+            <a href="{% url 'edit_site' site.id %}" class="btn btn-sm btn-warning float-end">Modifier le site</a>
+        {% endif %}
+    </div>
 
     <div class="card shadow-sm mb-4">
         <div class="card-body">
@@ -21,21 +28,17 @@
 
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h3 class="card-title mb-0">Activités du site ({{ tasks.count }})</h3>
-                {% if request.user == project.coordinator %}
+                {% if request.user == site.project.coordinator %}
                 <a href="{% url 'add_task' site.id %}" class="btn btn-sm btn-primary">
                     <i class="fas fa-plus"></i> Ajouter une activité
                 </a>
                 {% endif %}
             </div>
 
-
-
-
-            <h3 class="card-title">Activités du site ({{ tasks.count }})</h3>
             {% if tasks %}
             <div class="list-group">
                 {% for task in tasks %}
-                <a href="#" class="list-group-item list-group-item-action mb-2">
+                <a href="{% url 'update_task_progress' task.id %}" class="list-group-item list-group-item-action mb-2">
                     <div class="d-flex w-100 justify-content-between">
                         <h5 class="mb-1">{{ task.title }}</h5>
                         <small class="badge bg-primary">{{ task.status }}</small>

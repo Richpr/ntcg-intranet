@@ -2,50 +2,83 @@
 {% block content %}
     <h1>Dashboard Team Lead</h1>
     
-    <!-- Section des stats -->
     <div class="row">
-        <div class="col-md-3">
+        <div class="col-md-12">
             <div class="card">
+                <div class="card-header">Tâches assignées</div>
+                  <a href="{% url 'export_user_tasks_csv' %}" class="btn btn-sm btn-success float-end">Exporter en CSV</a>
                 <div class="card-body">
-                    <h5>Tâches totales</h5>
-                    <p>{{ stats.total_tasks }}</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5>Tâches en cours</h5>
-                    <p>{{ stats.in_progress_tasks }}</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5>Tâches bientôt dues</h5>
-                    <p>{{ stats.due_soon_tasks }}</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5>Sites impliqués</h5>
-                    <p>{{ stats.sites_involved }}</p>
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Titre</th>
+                                <th>Site</th>
+                                <th>Statut</th>
+                                <th>Échéance</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in assigned_tasks %}
+                            <tr>
+                                <td>{{ task.title }}</td>
+                                <td>{{ task.site.name }}</td>
+                                <td>{{ task.status }}</td>
+                                <td>{{ task.due_date|date:"d M Y"|default:"Non définie" }}</td>
+                                <td><a href="{% url 'update_task_progress' task.id %}" class="btn btn-sm btn-primary">Mettre à jour</a></td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5">Aucune tâche assignée.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Chart -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <a href="{% url 'site_list' %}" class="btn btn-primary d-grid gap-2">Voir la liste de mes sites</a>
+        </div>
+    </div>
+
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h3 class="card-title mb-3">Sites auxquels je suis assigné</h3>
+                    {% if sites_involved %}
+                        <div class="list-group">
+                            {% for site in sites_involved %}
+                                <a href="{% url 'site_detail' site.id %}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h5 class="mb-1">{{ site.name }}</h5>
+                                        <small class="text-muted">{{ site.project.name }}</small>
+                                    </div>
+                                    <small>ID du site: {{ site.site_id }} | Tâches: {{ site.tasks.count }}</small>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info" role="alert">
+                            Aucun site ne vous est assigné pour le moment.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row mt-4">
         <div class="col-md-8">
             <canvas id="teamLeadChart" width="400" height="200"></canvas>
         </div>
     </div>
 
-    <!-- Tâches assignées -->
     <div class="row mt-4">
         <div class="col-md-12">
             <h3>Tâches assignées</h3>

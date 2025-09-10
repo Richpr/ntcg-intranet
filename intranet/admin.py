@@ -217,6 +217,27 @@ class SiteAdmin(admin.ModelAdmin):
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
     list_display = ('title', 'site', 'assigned_to', 'due_date', 'status')
-    list_filter = ('status', 'assigned_to', 'site__project') # Filtre par le projet
+    list_filter = ('status', 'assigned_to', 'site__project')
     search_fields = ('title', 'description')
     date_hierarchy = 'due_date'
+    
+    actions = ['export_tasks_csv']  # Ajout de l'action
+    
+    def export_tasks_csv(self, request, queryset):
+        import csv
+        from django.http import HttpResponse
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="tasks_export.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['Titre', 'Site', 'Projet', 'Assigné à', 'Statut', 'Date d’échéance'])
+        for task in queryset:
+            writer.writerow([
+                task.title,
+                task.site.name,
+                task.site.project.name,
+                task.assigned_to.get_full_name() if task.assigned_to else 'Non assigné',
+                task.status,
+                task.due_date
+            ])
+        return response
+    export_tasks_csv.short_description = "Exporter les tâches sélectionnées en CSV"
