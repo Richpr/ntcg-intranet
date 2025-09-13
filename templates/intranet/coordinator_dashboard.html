@@ -51,7 +51,12 @@
             <h3>Projets récents</h3>
             <ul>
                 {% for project in recent_projects %}
-                    <li>{{ project.name }} (Statut: {{ project.status }})</li>
+                    <li>
+                        {{ project.name }} (Statut: {{ project.status }})
+                        <a href="{% url 'add_site' project.id %}" class="btn btn-sm btn-primary ms-2">
+                            <i class="fas fa-plus"></i> Ajouter un site
+                        </a>
+                    </li>
                 {% empty %}
                     <li>Aucun projet récent.</li>
                 {% endfor %}

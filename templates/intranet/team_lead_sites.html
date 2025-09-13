@@ -17,7 +17,9 @@
                     <p><strong>Projet:</strong> {{ site.project.name }}</p>
                     <p><strong>Localisation:</strong> {{ site.location|default:"Non spécifiée" }}</p>
                     <p><strong>ID Site:</strong> {{ site.site_id|default:"N/A" }}</p>
-                    <p><strong>Tâches assignées:</strong> {{ site.tasks.filter(assigned_to=request.user).count }}</p>
+                    {% for data in sites_data %}
+                    <p><strong>Tâches assignées:</strong> {{ data.task_count }}</p>
+                    {% endfor %}
                 </div>
                 <div class="card-footer">
                     <a href="{% url 'site_detail' site.id %}" class="btn btn-primary btn-sm">

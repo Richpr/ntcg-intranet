@@ -74,6 +74,17 @@ urlpatterns = [
     path('tasks/export/', views.export_user_tasks_csv, name='export_user_tasks_csv'),
     path('team-lead/dashboard/', views.team_lead_dashboard, name='team_lead_dashboard'),
     path('team-lead/sites/', views.team_lead_sites, name='team_lead_sites'),
+
+    # Pour Coordinateurs/Country Managers
+    path('management/sites/', views.all_sites_view, name='all_sites_view'),
+    path('management/team-lead/<int:team_lead_id>/', views.team_lead_performance, name='team_lead_performance'),
+    path('management/site/<int:site_id>/edit/', views.edit_site, name='edit_site_management'),
+    path('management/sites/export/excel/', views.export_sites_excel, name='export_sites_excel'),
+    path('api/notifications/', views.api_notifications, name='api_notifications'),
+    path('api/tasks/update-status/', views.api_update_task_status, name='api_update_task_status'),
+    path('coordinator/dashboard/', views.coordinator_dashboard, name='coordinator_dashboard'),
+
+
 ]
 
 # Cette ligne est CRUCIALE pour le développement !

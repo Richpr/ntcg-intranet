@@ -1,4 +1,5 @@
 # Fichier : intranet/views.py
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -22,12 +23,15 @@ from .forms import SimplifiedEmployeeRegistrationForm, ProfileUpdateForm, Docume
 from .decorators import hr_required
 from .models import Document, Post, ProfileUpdate, BadgeDefinition, EmployeeBadge, Country
 import os
+from django.utils import timezone 
+from django.http import HttpResponse
+import pandas as pd
 from .forms import TaskUpdateForm, TaskReportForm 
-from datetime import datetime, date
+
 from django.db import models
 from django.core.files.base import ContentFile
-import datetime
-from datetime import datetime, date
+
+
 from django.db.models import ForeignKey
 from weasyprint import HTML
 from .forms import DocumentRequestForm
@@ -49,11 +53,12 @@ from django.core.files.base import ContentFile
 import json # Assurez-vous d'importer ce module
 import datetime
 from django.utils import timezone 
-from datetime import date, timedelta
-from datetime import datetime
+
+
 from .models import ProfileUpdate, User  # Assure-toi que le modèle User est importé
 from django.contrib.auth.decorators import login_required
 from .models import User, Department
+from django.core.paginator import Paginator
 from .decorators import hr_required, country_manager_required, coordinator_required
 
 # Référence sécurisée à votre modèle d'utilisateur
@@ -86,7 +91,7 @@ def employee_directory(request):
             countries_to_filter = [selected_country_code]
         else:
             countries_to_filter = [c.code for c in countries_available]
-    elif user.groups.filter(name='RH').exists(): 
+    elif user.groups.filter(name='Ressources Humaines').exists(): 
         countries_available = user.managed_countries.filter(is_active=True).order_by('name')
         if selected_country_code and selected_country_code in [c.code for c in countries_available]:
             countries_to_filter = [selected_country_code]
@@ -164,7 +169,7 @@ def create_notification(user, title, message, notification_type='info'):
 @login_required
 def home_view(request):
     latest_posts = Post.objects.all().order_by('-created_at')[:5]
-    is_hr = request.user.groups.filter(name='RH').exists()
+    is_hr = request.user.groups.filter(name='Ressources Humaines').exists()
     
     # Calcul des années de service
     if hasattr(request.user, 'years_of_service'):
@@ -209,9 +214,9 @@ def home_view(request):
 
 def get_hr_statistics():
     """Retourne les statistiques pour le tableau de bord RH"""
-    today = datetime.now().date()
-    
-    start_of_month = today.replace(day=1)
+    now = timezone.now()
+    start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+     
     
     return {
         'total_employees': User.objects.count(),
@@ -224,7 +229,7 @@ def get_hr_statistics():
 
 def get_upcoming_events():
     """Retourne les événements à venir (simulés)"""
-    today = datetime.now().date()
+    today = timezone.now().date()
     return [
         {
             'title': 'Team-building annuel',
@@ -276,6 +281,17 @@ def employee_directory(request):
     countries_to_filter = []
     countries_available = []
 
+    employees_list = User.objects.all().select_related(
+        'departement', 'job_role', 'bank_info', 'country', 'contract_type'
+    ).prefetch_related(
+        'received_badges__badge', 'profile_updates'
+    ).only(
+        'first_name', 'last_name', 'email', 'is_active', 
+        'departement__name', 'job_role__name', 'country__name',
+        'employee_id', 'photo_profil'
+    ).order_by('last_name', 'first_name')
+    # ...
+
     # Gestion des permissions par pays
     if user.is_superuser:
         countries_available = Country.objects.filter(is_active=True).order_by('name')
@@ -283,7 +299,7 @@ def employee_directory(request):
             countries_to_filter = [selected_country_code]
         else:
             countries_to_filter = [c.code for c in countries_available]
-    elif user.groups.filter(name='RH').exists(): 
+    elif user.groups.filter(name='Ressources Humaines').exists(): 
         countries_available = user.managed_countries.filter(is_active=True).order_by('name')
         if selected_country_code and selected_country_code in [c.code for c in countries_available]:
             countries_to_filter = [selected_country_code]
@@ -393,7 +409,7 @@ def mark_notification_read(request, notification_id):
 # API pour les statistiques
 @login_required
 def api_statistics(request):
-    if not request.user.groups.filter(name='RH').exists():
+    if not request.user.groups.filter(name='Ressources Humaines').exists():
         return JsonResponse({'error': 'Unauthorized'}, status=403)
     
     # Statistiques pour les graphiques
@@ -1039,20 +1055,28 @@ def is_coordinator_of(user, project):
 
 @login_required
 def project_detail(request, project_id):
-    project = get_object_or_404(Project, id=project_id)
+    project = get_object_or_404(Project, pk=project_id)
+    user = request.user
+
+    # Nouvel ajout de la logique de permission
+    is_project_coordinator = (project.coordinator == user)
     
-    # Vérification des permissions
-    # L'utilisateur doit être le coordinateur ou un membre de l'équipe
-    if not (request.user == project.coordinator or request.user in project.team_members.all()):
+    # Vérification des permissions mise à jour
+    has_permission = False
+    if user.is_superuser or is_project_coordinator:
+        has_permission = True
+    elif user.groups.filter(name='Country Manager').exists():
+        has_permission = True
+    elif user.groups.filter(name='Coordinateur de Projet').exists() and user.managed_countries.filter(code=project.country.code).exists():
+        has_permission = True
+
+    if not has_permission:
+        # Lève l'exception si aucune des conditions n'est remplie
         raise PermissionDenied("Vous n'avez pas la permission de voir ce projet.")
-    
-    # Récupérer tous les sites liés à ce projet
+   
     sites = project.sites.all().order_by('name')
+    context = {'project': project, 'sites': sites}
     
-    context = {
-        'project': project,
-        'sites': sites,
-    }
     return render(request, 'intranet/project_detail.html', context)
 
 
@@ -1208,7 +1232,7 @@ def site_list_view(request):
     ).select_related('project').distinct()
     
     # Pagination
-    paginator = Paginator(sites, 10)
+    paginator = Paginator(sites.order_by('name'), 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -1218,20 +1242,25 @@ def site_list_view(request):
 def dashboard_view(request):
     user = request.user
     if user.groups.filter(name='Ressources Humaines').exists():
-        return hr_dashboard(request)  # Ou rend un template RH spécifique
+        # Redirige vers l'URL nommée 'hr_dashboard'
+        return redirect('hr_dashboard')
     elif user.groups.filter(name='Coordinateur de Projet').exists():
-        return coordinator_dashboard(request)  # Dashboard pour managers/team leads
-    elif user.job_role.name == 'Team Lead':  # Si basé sur job_role
-        return team_lead_dashboard(request)
+        # Redirige vers l'URL nommée 'coordinator_dashboard'
+        return redirect('coordinator_dashboard') 
+    elif user.job_role and user.job_role.name == 'Team Lead':
+        # Redirige vers l'URL nommée 'team_lead_dashboard'
+        return redirect('team_lead_dashboard')
     else:
-        return render(request, 'intranet/default_dashboard.html', {'user': user})  # Dashboard par défaut
-    
+        # Créez le template ou redirigez vers un template existant
+        # Option 1 : Redirection vers la page d'accueil (plus propre)
+        return redirect('home_view') 
     # Tableau de bord RH
 
 # Ajoute ces vues après dashboard_view dans views.py
 
 
 @login_required
+
 def hr_dashboard(request):
     """Dashboard pour RH : stats employés, approbations, etc."""
     hr_stats = {
@@ -1390,7 +1419,7 @@ def update_task_progress(request, task_id):
 def edit_site(request, site_id):
     site = get_object_or_404(Site, id=site_id)
     if request.user != site.project.coordinator:
-        raise PermissionDenied
+        raise PermissionDenied("Vous n'avez pas accès à cette ressource")
     if request.method == 'POST':
         form = SiteForm(request.POST, instance=site)
         if form.is_valid():
@@ -1431,14 +1460,182 @@ def export_user_tasks_csv(request):
 
 @login_required
 def team_lead_sites(request):
-    """Vue spéciale pour afficher les sites du Team Lead"""
-    # Sites où l'utilisateur est assigné à des tâches
-    sites = Site.objects.filter(
-        tasks__assigned_to=request.user
-    ).select_related('project').distinct()
+    team_lead = request.user
+    
+    sites = Site.objects.filter(project__team_members=team_lead)
+    
+    sites_data = []
+    for site in sites:
+        sites_data.append({
+            'site': site,
+            'task_count': site.get_user_task_count(team_lead)
+        })
+    
+    context = {
+        'sites_data': sites_data
+    }
+    
+    return render(request, 'intranet/team_lead_sites.html', context)
+
+
+@login_required
+@user_passes_test(lambda u: u.groups.filter(name__in=['Coordinateur de Projet', 'Country Manager']).exists())
+def all_sites_view(request):
+    """Vue pour voir tous les sites (Coordinateurs et Country Managers)"""
+    sites = Site.objects.all().select_related('project', 'project__coordinator')
+    
+    # Filtrage par projet si spécifié
+    project_id = request.GET.get('project')
+    if project_id:
+        sites = sites.filter(project_id=project_id)
+    
+    # Filtrage par Team Lead si spécifié
+    team_lead_id = request.GET.get('team_lead')
+    if team_lead_id:
+        sites = sites.filter(tasks__assigned_to_id=team_lead_id).distinct()
     
     context = {
         'sites': sites,
-        'title': 'Mes Sites - Team Lead'
+        'projects': Project.objects.all(),
+        'team_leads': User.objects.filter(groups__name='Team Lead'),
+        'title': 'Tous les Sites - Vue Management'
     }
-    return render(request, 'intranet/team_lead_sites.html', context)
+    return render(request, 'intranet/all_sites_view.html', context)
+
+
+@login_required
+@user_passes_test(lambda u: u.groups.filter(name__in=['Coordinateur de Projet', 'Country Manager']).exists())
+def team_lead_performance(request, team_lead_id):
+    """Vue détaillée des performances d'un Team Lead"""
+    team_lead = get_object_or_404(User, id=team_lead_id, groups__name='Team Lead')
+    
+    # Statistiques des tâches
+    tasks = Task.objects.filter(assigned_to=team_lead)
+    task_stats = {
+        'total': tasks.count(),
+        'completed': tasks.filter(status='TERMINÉ').count(),
+        'in_progress': tasks.filter(status='EN COURS').count(),
+        'pending': tasks.filter(status='À FAIRE').count(),
+        'overdue': tasks.filter(due_date__lt=timezone.now()).exclude(status='TERMINÉ').count()
+    }
+    
+    # Sites assignés à ce Team Lead
+    sites = Site.objects.filter(tasks__assigned_to=team_lead).distinct()
+    
+    context = {
+        'team_lead': team_lead,
+        'task_stats': task_stats,
+        'sites': sites,
+        'title': f'Performance de {team_lead.get_full_name()}'
+    }
+    return render(request, 'intranet/team_lead_performance.html', context)
+
+
+
+
+def export_sites_excel(request):
+    """Exporte tous les sites vers un fichier Excel"""
+    sites = Site.objects.all().select_related('project').prefetch_related('tasks')
+    
+    # Préparer les données
+    data = []
+    for site in sites:
+        team_leads = ", ".join([lead.get_full_name() for lead in site.get_team_leads()])
+        
+        data.append({
+            'Nom du Site': site.name,
+            'ID Site': site.site_id or 'N/A',
+            'Projet': site.project.name,
+            'Localisation': site.location or 'Non spécifiée',
+            'Tâches Complétées': site.completed_tasks_count(),
+            'Tâches Totales': site.total_tasks_count(),
+            'Progression (%)': site.completion_percentage(),
+            'Team Leads': team_leads,
+            'Date Création': site.project.created_at.strftime('%d/%m/%Y') if site.project.created_at else 'N/A'
+        })
+    
+    # Créer le DataFrame pandas
+    df = pd.DataFrame(data)
+    
+    # Créer la réponse HTTP
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    filename = f"sites_export_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    # Exporter vers Excel
+    with pd.ExcelWriter(response, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name='Sites', index=False)
+        
+        # Ajouter un formatage
+        worksheet = writer.sheets['Sites']
+        
+        # Ajuster la largeur des colonnes
+        for column in worksheet.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            worksheet.column_dimensions[column_letter].width = adjusted_width
+    
+    return response
+
+
+def ma_vue_liste(request):
+    object_list = MonModele.objects.all()
+    paginator = Paginator(object_list, 25)  # 25 éléments par page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'template.html', {'page_obj': page_obj})
+
+
+
+@login_required
+def api_notifications(request):
+    """
+    API pour récupérer les notifications non lues
+    """
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        notifications = request.user.notifications.filter(is_read=False).order_by('-created_at')[:10]
+        data = [{
+            'id': n.id,
+            'title': n.title,
+            'message': n.message,
+            'type': n.notification_type,
+            'created_at': n.created_at.strftime('%d/%m/%Y %H:%M'),
+            'link': n.link or '#'
+        } for n in notifications]
+        
+        return JsonResponse({'notifications': data, 'unread_count': notifications.count()})
+    
+    return JsonResponse({'error': 'Requête non autorisée'}, status=400)
+
+
+@login_required
+@require_POST
+def api_update_task_status(request):
+    """
+    API pour mettre à jour le statut d'une tâche via AJAX
+    """
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        try:
+            task_id = request.POST.get('task_id')
+            new_status = request.POST.get('status')
+            
+            task = Task.objects.get(id=task_id, assigned_to=request.user)
+            task.status = new_status
+            task.save()
+            
+            return JsonResponse({'success': True, 'new_status': task.status})
+            
+        except Task.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Tâche non trouvée'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+    
+    return JsonResponse({'success': False, 'error': 'Requête non autorisée'}, status=400)

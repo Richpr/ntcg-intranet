@@ -15,6 +15,7 @@ from .models import ProfileUpdate, Department, JobRole, PieceType, ContractType,
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from .models import Project, Site, Task 
 from .models import TaskReport
+from .constants import TEAM_LEAD_GROUP_NAME 
 
 
 from .models import Project, Site, Task  # Assurez-vous d'importer les nouveaux modèles
@@ -128,6 +129,18 @@ class ProfileUpdateForm(forms.ModelForm):
             'date_de_naissance': forms.DateInput(attrs={'type': 'date'}),
             'date_embauche': forms.DateInput(attrs={'type': 'date'}),
         }
+
+    def clean_telephone_personnel(self):
+        telephone = self.cleaned_data.get('telephone_personnel')
+        if telephone and not telephone.isdigit():
+            raise forms.ValidationError("Le numéro de téléphone ne doit contenir que des chiffres.")
+        return telephone
+    
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Cet email est déjà utilisé.")
+        return email
         
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -344,8 +357,10 @@ class ProjectForm(forms.ModelForm):
 class SiteForm(forms.ModelForm):
     class Meta:
         model = Site
-        fields = ['name', 'location', 'site_id']
-    
+        # Les champs 'description', 'status' et 'site_type' sont retirés.
+        # Le champ 'team_lead' est ajouté.
+        fields = ['name', 'location', 'site_id', 'project', 'team_lead']
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
@@ -354,9 +369,18 @@ class SiteForm(forms.ModelForm):
             'name',
             'location',
             'site_id',
+            'project',
+            Field('team_lead', css_class='form-control'),
             Submit('submit', 'Ajouter le site', css_class='btn-primary mt-3')
-
         )
+
+        # Filtrez les utilisateurs pour n'afficher que ceux du groupe "Team Lead"
+        try:
+            team_lead_group = Group.objects.get(name=TEAM_LEAD_GROUP_NAME)
+            self.fields['team_lead'].queryset = User.objects.filter(groups=team_lead_group).order_by('last_name')
+        except Group.DoesNotExist:
+            self.fields['team_lead'].queryset = User.objects.none()
+
 
 
 class TaskForm(forms.ModelForm):

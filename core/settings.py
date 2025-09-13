@@ -21,7 +21,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-_7&zs^59@zv_r4ye%&i0y*)s3d$cnb2ecot#f6a*q&fq25x004'
+#SECRET_KEY = 'django-insecure-_7&zs^59@zv_r4ye%&i0y*)s3d$cnb2ecot#f6a*q&fq25x004'
+
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'une-clé-par-défaut-pour-développement-seulement')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -87,14 +89,12 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-                'intranet.context_processors.is_rh_group',
-                'intranet.context_processors.is_project_coordinator', 
-                'intranet.context_processors.unread_notifications',
-                'intranet.context_processors.is_team_lead_group',
-            ],
+            'django.template.context_processors.request',
+            'django.contrib.auth.context_processors.auth',
+            'django.contrib.messages.context_processors.messages',
+            'intranet.context_processors.user_groups',  # UNIQUEMENT celui-ci
+            'intranet.context_processors.unread_notifications',
+],
         },
     },
 ]
@@ -161,6 +161,42 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 AUTH_USER_MODEL = 'intranet.User'
 # URLs de connexion et de redirection après connexion
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'dashboard'
+#LOGIN_REDIRECT_URL = 'dashboard'
 LOGIN_REDIRECT_URL = 'home_view'
+
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+
+# settings.py
+if not DEBUG:
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
 LOGOUT_REDIRECT_URL = 'login' # Redirection après déconnexion
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': { # Ajout du gestionnaire 'console'
+            'class': 'logging.StreamHandler',
+        },
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'debug.log'),
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'], # Ajout de 'console' ici
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}

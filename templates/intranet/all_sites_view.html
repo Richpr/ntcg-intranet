@@ -1,0 +1,219 @@
+{% extends 'intranet/base.html' %}
+{% load static %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css">
+<style>
+    .table-hover tbody tr:hover {
+        background-color: rgba(52, 152, 219, 0.1);
+    }
+    .status-badge {
+        font-size: 0.85em;
+        padding: 0.35em 0.65em;
+    }
+    .completion-bar {
+        height: 8px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .completion-progress {
+        height: 100%;
+        background-color: #28a745;
+        transition: width 0.3s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">🏗️ {{ title }}</h2>
+        <div>
+            <a href="{% url 'export_sites_excel' %}" class="btn btn-success">
+                <i class="fas fa-file-excel"></i> Exporter Excel
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Projet</label>
+                    <select name="project" class="form-select" onchange="this.form.submit()">
+                        <option value="">Tous les projets</option>
+                        {% for project in projects %}
+                        <option value="{{ project.id }}" {% if request.GET.project == project.id|stringformat:"s" %}selected{% endif %}>
+                            {{ project.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Team Lead</label>
+                    <select name="team_lead" class="form-select" onchange="this.form.submit()">
+                        <option value="">Tous les Team Leads</option>
+                        {% for lead in team_leads %}
+                        <option value="{{ lead.id }}" {% if request.GET.team_lead == lead.id|stringformat:"s" %}selected{% endif %}>
+                            {{ lead.get_full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Statut</label>
+                    <select name="status" class="form-select" onchange="this.form.submit()">
+                        <option value="">Tous les statuts</option>
+                        <option value="high" {% if request.GET.status == "high" %}selected{% endif %}>Progression élevée (>75%)</option>
+                        <option value="medium" {% if request.GET.status == "medium" %}selected{% endif %}>Progression moyenne (25-75%)</option>
+                        <option value="low" {% if request.GET.status == "low" %}selected{% endif %}>Progression faible (<25%)</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                    <a href="{% url 'all_sites_view' %}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-refresh"></i> Réinitialiser
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tableau DataTables -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="sitesTable" class="table table-striped table-hover" style="width:100%">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Nom du Site</th>
+                            <th>Projet</th>
+                            <th>Localisation</th>
+                            <th>Team Leads</th>
+                            <th>Progression</th>
+                            <th>Tâches</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for site in sites %}
+                        <tr>
+                            <td>
+                                <strong>{{ site.name }}</strong>
+                                {% if site.site_id %}
+                                <br><small class="text-muted">ID: {{ site.site_id }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ site.project.name }}</td>
+                            <td>{{ site.location|default:"-" }}</td>
+                            <td>
+                                {% for lead in site.get_team_leads %}
+                                <span class="badge bg-info status-badge">{{ lead.get_full_name }}</span>
+                                {% empty %}
+                                <span class="text-muted">Aucun</span>
+                                {% endfor %}
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="completion-bar" style="width: 100px; margin-right: 10px;">
+                                        <div class="completion-progress" style="width: {{ site.completion_percentage }}%"></div>
+                                    </div>
+                                    <span>{{ site.completion_percentage|floatformat:0 }}%</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-primary">{{ site.completed_tasks_count }}/{{ site.total_tasks_count }}</span>
+                            </td>
+                            <td>
+                                {% if site.completion_percentage == 100 %}
+                                <span class="badge bg-success status-badge">Terminé</span>
+                                {% elif site.completion_percentage >= 75 %}
+                                <span class="badge bg-info status-badge">Avancé</span>
+                                {% elif site.completion_percentage >= 50 %}
+                                <span class="badge bg-warning status-badge">En cours</span>
+                                {% else %}
+                                <span class="badge bg-danger status-badge">Débutant</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'site_detail' site.id %}" class="btn btn-primary" title="Voir">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'edit_site_management' site.id %}" class="btn btn-warning" title="Éditer">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="#" class="btn btn-info" title="Statistiques">
+                                        <i class="fas fa-chart-bar"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        $('#sitesTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
+            },
+            dom: 'Bfrtip',
+            buttons: [
+                {
+                    extend: 'excel',
+                    text: '<i class="fas fa-file-excel"></i> Excel',
+                    className: 'btn btn-success btn-sm'
+                },
+                {
+                    extend: 'pdf',
+                    text: '<i class="fas fa-file-pdf"></i> PDF',
+                    className: 'btn btn-danger btn-sm'
+                },
+                {
+                    extend: 'print',
+                    text: '<i class="fas fa-print"></i> Imprimer',
+                    className: 'btn btn-info btn-sm'
+                }
+            ],
+            pageLength: 25,
+            order: [[0, 'asc']],
+            responsive: true,
+            columnDefs: [
+                { responsivePriority: 1, targets: 0 }, // Nom du site
+                { responsivePriority: 2, targets: 7 }, // Actions
+                { responsivePriority: 3, targets: 4 }, // Progression
+                { orderable: false, targets: 7 } // Désactiver le tri sur les actions
+            ]
+        });
+    });
+
+    function exportToExcel() {
+        // Votre logique d'export Excel ici
+        alert('Fonction d\'export Excel à implémenter');
+    }
+</script>
+{% endblock %}

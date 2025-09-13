@@ -22,11 +22,11 @@ def get_total_tasks(sites_queryset):
 def has_group(user, group_name):
     if user.is_authenticated:
         # Debug: afficher ce qui est vérifié
-        print(f"Vérification groupe: {group_name} pour {user}")
+        # print(f"Vérification groupe: {group_name} pour {user}")
         groups = user.groups.all()
-        print(f"Groupes de l'utilisateur: {[g.name for g in groups]}")
+        # print(f"Groupes de l'utilisateur: {[g.name for g in groups]}")
         result = user.groups.filter(name=group_name).exists()
-        print(f"Résultat: {result}")
+        # print(f"Résultat: {result}")
         return result
     return False
 

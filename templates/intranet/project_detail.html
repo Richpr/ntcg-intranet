@@ -27,15 +27,15 @@
     </div>
     
     <div class="card shadow-sm">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="card-title mb-0">Sites du projet ({{ sites.count }})</h3>
-        {% if request.user == project.coordinator %}
-        <a href="{% url 'add_site' project.id %}" class="btn btn-sm btn-primary">
-            <i class="fas fa-plus"></i> Ajouter un site
-        </a>
-        {% endif %}
-    </div>
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="card-title mb-0">Sites du projet ({{ sites.count }})</h3>
+                {% if request.user == project.coordinator %}
+                <a href="{% url 'add_site' project.id %}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-plus"></i> Ajouter un site
+                </a>
+                {% endif %}
+            </div>
             {% if sites %}
             <div class="list-group">
                 {% for site in sites %}
@@ -44,8 +44,11 @@
                         <h5 class="mb-1">{{ site.name }}</h5>
                         <small class="text-muted">{{ site.location|default:"-" }}</small>
                     </div>
+                    <small class="d-block">
+                        Team Lead : {{ site.team_lead.get_full_name|default:"Non assigné" }}
+                    </small>
                     <small>ID : {{ site.site_id }}</small>
-                </div>
+                </a>
                 {% endfor %}
             </div>
             {% else %}

@@ -163,6 +163,8 @@ class User(AbstractUser):
             models.Index(fields=['is_active']),
             models.Index(fields=['departement']),
             models.Index(fields=['country']),
+            models.Index(fields=['email']),
+            models.Index(fields=['is_active', 'country']),
         ]
 
 
@@ -263,6 +265,16 @@ class Document(models.Model):
     
     def __str__(self):
         return self.nom
+    
+    def clean(self):
+        # Validation de la taille du fichier (max 5MB)
+        if self.fichier and self.fichier.size > 5 * 1024 * 1024:
+            raise ValidationError("Le fichier ne doit pas dépasser 5MB.")
+        
+        # Validation du type de fichier
+        allowed_extensions = ['.pdf', '.doc', '.docx', '.jpg', '.png']
+        if not any(self.fichier.name.lower().endswith(ext) for ext in allowed_extensions):
+            raise ValidationError("Type de fichier non autorisé.")
 
 # Modèle pour les badges
 class BadgeDefinition(models.Model):
@@ -542,12 +554,62 @@ class Site(models.Model):
     location = models.CharField(max_length=255, verbose_name="Localisation", blank=True, null=True)
     site_id = models.CharField(max_length=50, unique=True, verbose_name="Identifiant unique du site", blank=True, null=True)
     
+    # Ajoutez ce nouveau champ
+    team_lead = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='led_sites',
+        verbose_name="Team Lead Assigné"
+    )
+
+
     def __str__(self):
         return f"{self.name} ({self.project.name})"
 
     class Meta:
         verbose_name = "Site"
         verbose_name_plural = "Sites"
+
+
+    def get_team_leads(self):
+        """Retourne tous les Team Leads travaillant sur ce site"""
+        return User.objects.filter(
+            groups__name='Team Lead',
+            tasks__site=self
+        ).distinct()
+    
+    def completed_tasks_count(self):
+        """Retourne le nombre de tâches terminées"""
+        return self.tasks.filter(status='TERMINÉ').count()
+    
+    def total_tasks_count(self):
+        """Retourne le nombre total de tâches"""
+        return self.tasks.count()
+    
+    def completion_percentage(self):
+        """Retourne le pourcentage de completion"""
+        total = self.total_tasks_count()
+        if total == 0:
+            return 0
+        return (self.completed_tasks_count() / total) * 100
+    
+    def get_user_task_count(self, user=None):
+        """
+        Retourne le nombre de tâches assignées à un utilisateur sur ce site
+        """
+        if user:
+            return self.tasks.filter(assigned_to=user).count()
+        return self.tasks.count()
+    
+    def get_user_tasks(self, user=None):
+        """
+        Retourne les tâches assignées à un utilisateur sur ce site
+        """
+        if user:
+            return self.tasks.filter(assigned_to=user)
+        return self.tasks.all()
 
 # Modèle pour les activités/tâches sur un site
 class Task(models.Model):
@@ -612,3 +674,11 @@ class TaskReport(models.Model):
         verbose_name = "Rapport de Tâche"
         verbose_name_plural = "Rapports de Tâche"
         ordering = ['-created_at']
+
+class ProjectManager(models.Manager):
+    def with_related_data(self):
+        return self.get_queryset().select_related(
+            'coordinator'
+        ).prefetch_related(
+            'team_members', 'sites', 'sites__tasks'
+        )
