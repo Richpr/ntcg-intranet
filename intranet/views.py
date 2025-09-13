@@ -12,6 +12,7 @@ from django.core.mail import send_mail
 from django.db.models import Q, Count, Sum
 from django.urls import reverse 
 from .models import User, Department
+from .decorators import group_required
 from django.http import HttpResponse, JsonResponse
 from django.conf import settings
 from django.contrib.messages import success, error
@@ -23,6 +24,7 @@ from .forms import SimplifiedEmployeeRegistrationForm, ProfileUpdateForm, Docume
 from .decorators import hr_required
 from .models import Document, Post, ProfileUpdate, BadgeDefinition, EmployeeBadge, Country
 import os
+from .decorators import hr_required, country_manager_required, coordinator_required, group_required
 from django.utils import timezone 
 from django.http import HttpResponse
 import pandas as pd
@@ -1325,39 +1327,49 @@ def coordinator_dashboard(request):
 
 
 @login_required
+@group_required('Team Lead')
 def team_lead_dashboard(request):
-    # Base queryset without slicing
+    # Base queryset pour les tâches assignées à l'utilisateur
     base_tasks = Task.objects.filter(assigned_to=request.user).select_related('site__project')
-    
-    # Compute counts on the full queryset
+
+    # Sites assignés : soit via team_lead, soit via tâches assignées
+    sites_involved = Site.objects.filter(
+        Q(team_lead=request.user) | Q(tasks__assigned_to=request.user)
+    ).select_related('project').distinct().annotate(
+        task_count=Count('tasks')  # Compte total des tâches par site
+    )
+
+    # Stats pour le dashboard
     stats = {
         'total_tasks': base_tasks.count(),
         'in_progress_tasks': base_tasks.filter(status='EN COURS').count(),
-        'due_soon_tasks': base_tasks.filter(due_date__lte=timezone.now() + timedelta(days=7)).count(),
-        'sites_involved': Site.objects.filter(tasks__assigned_to=request.user).select_related('project').distinct().count(),
+        'due_soon_tasks': base_tasks.filter(
+            due_date__lte=timezone.now() + timedelta(days=7),
+            due_date__gte=timezone.now()  # Exclure les tâches déjà échues
+        ).count(),
+        'sites_involved': sites_involved.count(),
     }
-    
-    # Apply slicing only for the tasks to display
-    assigned_tasks = base_tasks.order_by('due_date')[:10]
-    sites_involved = Site.objects.filter(tasks__assigned_to=request.user).select_related('project').distinct()
 
-     # Correction du format pour Chart.js
+    # Tâches à afficher (limitées à 10)
+    assigned_tasks = base_tasks.order_by('due_date')[:10]
+
+    # Données pour Chart.js (graphique en barres)
     chart_data = {
         'labels': ['Total', 'En cours', 'Bientôt dus'],
         'datasets': [{
             'label': 'Tâches',
             'data': [stats['total_tasks'], stats['in_progress_tasks'], stats['due_soon_tasks']],
             'backgroundColor': ['#FF6384', '#36A2EB', '#FFCE56'],
-            'borderColor': 'rgb(75, 192, 192)',
-            'tension': 0.1,
+            'borderColor': ['#FF6384', '#36A2EB', '#FFCE56'],
+            'borderWidth': 1,
         }]
     }
-    
+
     context = {
         'stats': stats,
-        'chart_data': json.dumps(chart_data),  # Convertir en JSON
-        'assigned_tasks': base_tasks.order_by('due_date')[:10],
-        'sites_involved': Site.objects.filter(tasks__assigned_to=request.user).select_related('project').distinct(),
+        'chart_data': json.dumps(chart_data),
+        'assigned_tasks': assigned_tasks,
+        'sites_involved': sites_involved,
         'unread_notifications_count': Notification.objects.filter(user=request.user, is_read=False).count(),
     }
     return render(request, 'intranet/team_lead_dashboard.html', context)
@@ -1461,22 +1473,19 @@ def export_user_tasks_csv(request):
 
 
 @login_required
+@group_required('Team Lead')
 def team_lead_sites(request):
-    team_lead = request.user
-    
-    sites = Site.objects.filter(project__team_members=team_lead)
-    
-    sites_data = []
-    for site in sites:
-        sites_data.append({
-            'site': site,
-            'task_count': site.get_user_task_count(team_lead)
-        })
-    
+    # Sites assignés : soit via team_lead, soit via tâches assignées
+    sites = Site.objects.filter(
+        Q(team_lead=request.user) | Q(tasks__assigned_to=request.user)
+    ).select_related('project').distinct().annotate(
+        task_count=Count('tasks')  # Compte total des tâches par site
+    ).order_by('name')
+
     context = {
-        'sites_data': sites_data
+        'sites': sites,
+        'title': 'Mes Sites Assignés',
     }
-    
     return render(request, 'intranet/team_lead_sites.html', context)
 
 
