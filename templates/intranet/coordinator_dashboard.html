@@ -1,82 +1,95 @@
 {% extends 'intranet/base.html' %}
-{% block content %}
-    <h1>Dashboard Coordinateur (Manager)</h1>
-    
-    <!-- Section des stats -->
-    <div class="row">
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5>Projets totaux</h5>
-                    <p>{{ stats.total_projects }}</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5>Projets en cours</h5>
-                    <p>{{ stats.ongoing_projects }}</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5>Membres d'équipe</h5>
-                    <p>{{ stats.team_members_count }}</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5>Tâches en attente</h5>
-                    <p>{{ stats.pending_tasks }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
+     {% block content %}
+     <div class="container">
+         <h1>Dashboard Coordinateur (Manager)</h1>
+         <div class="row">
+             <div class="col-md-3">
+                 <div class="card mb-4">
+                     <div class="card-body">
+                         <h5 class="card-title">Projets totaux</h5>
+                         <p class="card-text">{{ stats.total_projects }}</p>
+                     </div>
+                 </div>
+             </div>
+             <div class="col-md-3">
+                 <div class="card mb-4">
+                     <div class="card-body">
+                         <h5 class="card-title">Projets en cours</h5>
+                         <p class="card-text">{{ stats.ongoing_projects }}</p>
+                     </div>
+                 </div>
+             </div>
+             <div class="col-md-3">
+                 <div class="card mb-4">
+                     <div class="card-body">
+                         <h5 class="card-title">Membres d'équipe</h5>
+                         <p class="card-text">{{ stats.team_members_count }}</p>
+                     </div>
+                 </div>
+             </div>
+             <div class="col-md-3">
+                 <div class="card mb-4">
+                     <div class="card-body">
+                         <h5 class="card-title">Tâches en attente</h5>
+                         <p class="card-text">{{ stats.pending_tasks }}</p>
+                     </div>
+                 </div>
+             </div>
+         </div>
 
-    <!-- Chart -->
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <canvas id="coordinatorChart" width="400" height="400"></canvas>
-        </div>
-    </div>
+         <div class="row">
+             <div class="col-md-6">
+                 <div class="card mb-4">
+                     <div class="card-body">
+                         <h5 class="card-title">Répartition des tâches</h5>
+                         <canvas id="taskStatusChart"></canvas>
+                     </div>
+                 </div>
+             </div>
+         </div>
 
-    <!-- Projets récents -->
-    <div class="row mt-4">
-        <div class="col-md-12">
-            <h3>Projets récents</h3>
-            <ul>
-                {% for project in recent_projects %}
-                    <li>
-                        {{ project.name }} (Statut: {{ project.status }})
-                        <a href="{% url 'add_site' project.id %}" class="btn btn-sm btn-primary ms-2">
-                            <i class="fas fa-plus"></i> Ajouter un site
-                        </a>
-                    </li>
-                {% empty %}
-                    <li>Aucun projet récent.</li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
-{% endblock %}
+         <div class="card">
+             <div class="card-header">Projets récents</div>
+             <ul class="list-group list-group-flush">
+                 {% for project in recent_projects %}
+                 <li class="list-group-item">
+                     {{ project.name }} (Statut: {{ project.status }})
+                     <a href="{% url 'add_site' project.id %}" class="btn btn-sm btn-primary float-end">Ajouter un site</a>
+                 </li>
+                 {% empty %}
+                 <li class="list-group-item">Aucun projet récent.</li>
+                 {% endfor %}
+             </ul>
+         </div>
+     </div>
+     {% endblock %}
 
-{% block extra_js %}
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var ctx = document.getElementById('coordinatorChart').getContext('2d');
-            var chartData = {{ chart_data|safe }};  // Utilise les données du contexte
-            var myChart = new Chart(ctx, {
-                type: 'doughnut',  // Type de chart : doughnut (camembert)
-                data: chartData,
-                options: {
-                    responsive: true,
-                }
-            });
-        });
-    </script>
-{% endblock %}
+     {% block extra_js %}
+     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+     <script>
+         const ctx = document.getElementById('taskStatusChart').getContext('2d');
+         const taskStats = {{ stats.task_stats|safe }};
+         new Chart(ctx, {
+             type: 'pie',
+             data: {
+                 labels: ['À faire', 'En cours', 'Terminé', 'En attente'],
+                 datasets: [{
+                     data: [
+                         taskStats['À FAIRE'] || 0,
+                         taskStats['EN COURS'] || 0,
+                         taskStats['TERMINÉ'] || 0,
+                         taskStats['EN ATTENTE'] || 0
+                     ],
+                     backgroundColor: ['#FF6384', '#36A2EB', '#4BC0C0', '#FFCE56'],
+                 }]
+             },
+             options: {
+                 responsive: true,
+                 plugins: {
+                     legend: { position: 'top' },
+                     title: { display: true, text: 'Répartition des tâches par statut' }
+                 }
+             }
+         });
+     </script>
+     {% endblock %}

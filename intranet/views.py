@@ -1116,27 +1116,29 @@ def create_project(request):
     return render(request, 'intranet/create_project.html', {'form': form})
 
 @login_required
+@coordinator_required
 def add_site(request, project_id):
     project = get_object_or_404(Project, id=project_id)
-
-    # Vérification des permissions : seul le coordinateur du projet peut ajouter des sites
-    if not request.user == project.coordinator:
-        raise PermissionDenied("Vous n'avez pas la permission d'ajouter un site à ce projet.")
-        
     if request.method == 'POST':
         form = SiteForm(request.POST)
         if form.is_valid():
+            # Créer l'objet Site mais ne pas le sauvegarder encore
             site = form.save(commit=False)
             site.project = project
             site.save()
-            messages.success(request, f"Le site '{site.name}' a été ajouté au projet.")
+            messages.success(request, f"Le site '{site.name}' a été ajouté avec succès au projet '{project.name}'.")
             return redirect('project_detail', project_id=project.id)
+        else:
+            # Affiche les erreurs du formulaire à l'utilisateur
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"Erreur sur le champ '{field}': {error}")
     else:
         form = SiteForm()
 
     context = {
-        'form': form,
         'project': project,
+        'form': form,
     }
     return render(request, 'intranet/add_site.html', context)
 

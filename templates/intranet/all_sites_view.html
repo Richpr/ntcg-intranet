@@ -111,13 +111,7 @@
                             </td>
                             <td>{{ site.project.name }}</td>
                             <td>{{ site.location|default:"-" }}</td>
-                            <td>
-                                {% for lead in site.get_team_leads %}
-                                <span class="badge bg-info status-badge">{{ lead.get_full_name }}</span>
-                                {% empty %}
-                                <span class="text-muted">Aucun</span>
-                                {% endfor %}
-                            </td>
+                            <td>{{ site.team_lead.get_full_name|default:"Aucun" }}</td>
                             <td>
                                 <div class="d-flex align-items-center">
                                     <div class="completion-bar" style="width: 100px; margin-right: 10px;">

@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'intranet', # Notre application
     'crispy_forms', # Pour les formulaires
     'crispy_bootstrap5',  # NOUVEAU : Ajoutez le nouveau pack
+    'django_countries',
 ]
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"  # NOUVEAU
