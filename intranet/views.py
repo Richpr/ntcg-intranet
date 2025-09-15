@@ -1473,7 +1473,6 @@ def export_user_tasks_csv(request):
 
 
 @login_required
-<<<<<<< HEAD
 @group_required('Team Lead')  # Utilise ton décorateur pour restreindre aux Team Leads
 def team_lead_sites(request):
     # Filtrer TOUS les sites assignés à ce Team Lead (par ses supérieurs)
@@ -1486,20 +1485,7 @@ def team_lead_sites(request):
     context = {
         'sites': sites,
         'title': 'Mes Sites Assignés',  # Pour le <title> du template
-=======
-@group_required('Team Lead')
-def team_lead_sites(request):
-    # Sites assignés : soit via team_lead, soit via tâches assignées
-    sites = Site.objects.filter(
-        Q(team_lead=request.user) | Q(tasks__assigned_to=request.user)
-    ).select_related('project').distinct().annotate(
-        task_count=Count('tasks')  # Compte total des tâches par site
-    ).order_by('name')
 
-    context = {
-        'sites': sites,
-        'title': 'Mes Sites Assignés',
->>>>>>> f05a29c295a102ac47d6953e32560b9d0d4739da
     }
     return render(request, 'intranet/team_lead_sites.html', context)
 
