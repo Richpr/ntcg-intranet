@@ -721,16 +721,7 @@
 
 
                     {% if request.user|has_group:"Country Manager" or request.user|has_group:"Coordinateur de Projet" %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'project_dashboard' %}">
-                                <i class="fas fa-project-diagram"></i> Projets
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'site_list' %}">
-                                <i class="fas fa-map-marked-alt"></i> Sites
-                            </a>
-                        </li>
+                        
 
                         <li class="nav-item mt-3">
                             <small class="text-muted px-3"><strong>MANAGEMENT</strong></small>

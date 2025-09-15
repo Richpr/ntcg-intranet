@@ -1,6 +1,7 @@
 from django.shortcuts import redirect
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.models import Group
+from functools import wraps
 
 
 HR_GROUP = 'Ressources Humaines'
