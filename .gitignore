@@ -1,3 +1,4 @@
-# Fichiers à ignorer
+# .gitignore file
+db.sqlite3
+debug.log
 __pycache__/
-*.pyc
