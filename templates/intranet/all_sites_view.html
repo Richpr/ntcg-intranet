@@ -90,62 +90,63 @@
                 <table id="sitesTable" class="table table-striped table-hover" style="width:100%">
                     <thead class="table-dark">
                         <tr>
-                            <th>Nom du Site</th>
+                            <th>Nom du site</th>
+                            <th>ID Site</th>
                             <th>Projet</th>
-                            <th>Localisation</th>
-                            <th>Team Leads</th>
-                            <th>Progression</th>
-                            <th>Tâches</th>
-                            <th>Statut</th>
+                            <th>Team Lead</th>
+                            <th>Phase</th>
+                            <th>Batch</th>
+                            <th>Type de radio</th>
+                            <th>Type d'antenne</th>
+                            <th>Type de boîtier</th>
+                            <th>BB ML</th>
+                            <th>Portée du projet</th>
+                            <th>Zone du site</th>
+                            <th>Installation</th>
+                            <th>Intégration</th>
+                            <th>SRS</th>
+                            <th>IMK</th>
+                            <th>EHS 1</th>
+                            <th>EHS 2</th>
+                            <th>QA</th>
+                            <th>Statut QA</th>
+                            <th>ATP</th>
+                            <th>Commentaires</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for site in sites %}
                         <tr>
-                            <td>
-                                <strong>{{ site.name }}</strong>
-                                {% if site.site_id %}
-                                <br><small class="text-muted">ID: {{ site.site_id }}</small>
-                                {% endif %}
-                            </td>
+                            <td><a href="{% url 'site_detail' site.id %}">{{ site.name }}</a></td>
+                            <td>{{ site.site_id }}</td>
                             <td>{{ site.project.name }}</td>
-                            <td>{{ site.location|default:"-" }}</td>
-                            <td>{{ site.team_lead.get_full_name|default:"Aucun" }}</td>
+                            <td>{{ site.team_lead.get_full_name|default:"-" }}</td>
+                            <td>{{ site.phase|default:"-" }}</td>
+                            <td>{{ site.batch|default:"-" }}</td>
+                            <td>{{ site.radio_type|default:"-" }}</td>
+                            <td>{{ site.antenna_type|default:"-" }}</td>
+                            <td>{{ site.enclosure_type|default:"-" }}</td>
+                            <td>{{ site.bb_ml|default:"-" }}</td>
+                            <td>{{ site.project_scope|default:"-" }}</td>
+                            <td>{{ site.site_area|default:"-" }}</td>
+                            <td><span class="badge bg-{% if site.installation %}success{% else %}warning{% endif %}">{{ site.get_installation_display }}</span></td>
+                            <td><span class="badge bg-{% if site.integration %}success{% else %}warning{% endif %}">{{ site.get_integration_display }}</span></td>
+                            <td><span class="badge bg-{% if site.srs %}success{% else %}warning{% endif %}">{{ site.get_srs_display }}</span></td>
+                            <td><span class="badge bg-{% if site.imk %}success{% else %}warning{% endif %}">{{ site.get_imk_display }}</span></td>
+                            <td><span class="badge bg-{% if site.ehs_1 %}success{% else %}warning{% endif %}">{{ site.get_ehs_1_display }}</span></td>
+                            <td><span class="badge bg-{% if site.ehs_2 %}success{% else %}warning{% endif %}">{{ site.get_ehs_2_display }}</span></td>
+                            <td><span class="badge bg-{% if site.qa %}success{% else %}warning{% endif %}">{{ site.get_qa_display }}</span></td>
+                            <td><span class="badge bg-info">{{ site.get_qa_status_display }}</span></td>
+                            <td><span class="badge bg-{% if site.atp %}success{% else %}warning{% endif %}">{{ site.get_atp_display }}</span></td>
+                            <td>{{ site.comment|truncatechars:30|default:"-" }}</td>
                             <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="completion-bar" style="width: 100px; margin-right: 10px;">
-                                        <div class="completion-progress" style="width: {{ site.completion_percentage }}%"></div>
-                                    </div>
-                                    <span>{{ site.completion_percentage|floatformat:0 }}%</span>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="badge bg-primary">{{ site.completed_tasks_count }}/{{ site.total_tasks_count }}</span>
-                            </td>
-                            <td>
-                                {% if site.completion_percentage == 100 %}
-                                <span class="badge bg-success status-badge">Terminé</span>
-                                {% elif site.completion_percentage >= 75 %}
-                                <span class="badge bg-info status-badge">Avancé</span>
-                                {% elif site.completion_percentage >= 50 %}
-                                <span class="badge bg-warning status-badge">En cours</span>
-                                {% else %}
-                                <span class="badge bg-danger status-badge">Débutant</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <a href="{% url 'site_detail' site.id %}" class="btn btn-primary" title="Voir">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{% url 'edit_site_management' site.id %}" class="btn btn-warning" title="Éditer">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <a href="#" class="btn btn-info" title="Statistiques">
-                                        <i class="fas fa-chart-bar"></i>
-                                    </a>
-                                </div>
+                                <a href="{% url 'edit_site_management' site.id %}" class="btn btn-sm btn-warning me-1">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'site_detail' site.id %}" class="btn btn-sm btn-info">
+                                    <i class="fas fa-eye"></i>
+                                </a>
                             </td>
                         </tr>
                         {% endfor %}

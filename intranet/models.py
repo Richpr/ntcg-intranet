@@ -9,6 +9,17 @@ import uuid
 from django.utils import timezone
 from datetime import datetime
 from django.db.models import JSONField # L'importation correcte pour SQLite
+from .site_choices import Phase, Batch, RadioType, AntennaType, EnclosureType, BBML, ProjectScope, SiteStatus, QAStatus
+from .constants import TEAM_LEAD_GROUP_NAME
+from django.contrib.auth.models import Group
+
+
+from .site_choices import (
+    Phase, Batch, RadioType, AntennaType, EnclosureType,
+    BBML, ProjectScope, SiteStatus, QAStatus
+)
+
+
 
 
 # Modèles pour les listes déroulantes
@@ -545,33 +556,40 @@ class Project(models.Model):
 # Modèle pour les sites de télécommunication
 class Site(models.Model):
     name = models.CharField(max_length=255, verbose_name="Nom du site")
-    project = models.ForeignKey(
-        'Project',
-        on_delete=models.CASCADE,
-        related_name='sites',
-        verbose_name="Projet associé"
-    )
-    location = models.CharField(max_length=255, verbose_name="Localisation", blank=True, null=True)
-    site_id = models.CharField(max_length=50, unique=True, verbose_name="Identifiant unique du site", blank=True, null=True)
-    
-    # Ajoutez ce nouveau champ
-    team_lead = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='led_sites',
-        verbose_name="Team Lead Assigné"
-    )
+    project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='sites', verbose_name="Projet")
+    team_lead = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Team Lead Assigné")
+    location = models.CharField(max_length=255, blank=True, null=True, verbose_name="Localisation")
+    site_id = models.CharField(max_length=100, unique=True, verbose_name="ID du Site")
 
+    # Champs de listes déroulantes (ForeignKey)
+    site_area = models.CharField(max_length=100, verbose_name="Site Area", blank=True, null=True)
+    phase = models.ForeignKey(Phase, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Phase")
+    batch = models.ForeignKey(Batch, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Batch")
+    project_scope = models.ForeignKey(ProjectScope, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Portée du projet")
+    radio_type = models.ForeignKey(RadioType, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Type de radio")
+    antenna_type = models.ForeignKey(AntennaType, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Type d'antenne")
+    enclosure_type = models.ForeignKey(EnclosureType, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Type de boîtier")
+    bb_ml = models.ForeignKey(BBML, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="BB / ML")
+    
+    # Champs de statut (ForeignKey)
+    installation = models.ForeignKey(SiteStatus, on_delete=models.SET_NULL, null=True, blank=True, related_name='installation_sites', verbose_name="Installation")
+    integration = models.ForeignKey(SiteStatus, on_delete=models.SET_NULL, null=True, blank=True, related_name='integration_sites', verbose_name="Intégration")
+    srs = models.ForeignKey(SiteStatus, on_delete=models.SET_NULL, null=True, blank=True, related_name='srs_sites', verbose_name="SRS")
+    imk = models.ForeignKey(SiteStatus, on_delete=models.SET_NULL, null=True, blank=True, related_name='imk_sites', verbose_name="IMK")
+    ehs_1 = models.ForeignKey(SiteStatus, on_delete=models.SET_NULL, null=True, blank=True, related_name='ehs1_sites', verbose_name="EHS 1")
+    ehs_2 = models.ForeignKey(SiteStatus, on_delete=models.SET_NULL, null=True, blank=True, related_name='ehs2_sites', verbose_name="EHS 2")
+    qa = models.ForeignKey(SiteStatus, on_delete=models.SET_NULL, null=True, blank=True, related_name='qa_sites', verbose_name="QA")
+    
+    qa_status = models.ForeignKey(QAStatus, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Statut QA")
+    atp = models.ForeignKey(SiteStatus, on_delete=models.SET_NULL, null=True, blank=True, related_name='atp_sites', verbose_name="ATP")
+    comment = models.TextField(verbose_name="COMMENT", blank=True, null=True)
 
     def __str__(self):
-        return f"{self.name} ({self.project.name})"
+        return self.name
 
     class Meta:
         verbose_name = "Site"
         verbose_name_plural = "Sites"
-
 
     def get_team_leads(self):
         """Retourne tous les Team Leads travaillant sur ce site"""
@@ -610,6 +628,7 @@ class Site(models.Model):
         if user:
             return self.tasks.filter(assigned_to=user)
         return self.tasks.all()
+
 
 # Modèle pour les activités/tâches sur un site
 class Task(models.Model):

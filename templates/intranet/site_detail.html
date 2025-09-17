@@ -17,9 +17,41 @@
     <div class="card shadow-sm mb-4">
         <div class="card-body">
             <h1 class="card-title">{{ site.name }}</h1>
-            <p class="text-muted"><strong>Projet :</strong> {{ site.project.name }}</p>
-            <p class="text-muted"><strong>ID du site :</strong> {{ site.site_id }}</p>
-            <p class="text-muted"><strong>Localisation :</strong> {{ site.location }}</p>
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Projet :</strong> {{ site.project.name }}</p>
+                    <p><strong>Team Lead :</strong> {{ site.team_lead.get_full_name|default:"Non assigné" }}</p>
+                    <p><strong>Localisation :</strong> {{ site.location }}</p>
+                    <p><strong>ID du site :</strong> {{ site.site_id }}</p>
+                    <p><strong>Phase :</strong> {{ site.phase|default:"Non définie" }}</p>
+                    <p><strong>Batch :</strong> {{ site.batch|default:"Non défini" }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Type de radio :</strong> {{ site.radio_type|default:"Non défini" }}</p>
+                    <p><strong>Type d'antenne :</strong> {{ site.antenna_type|default:"Non défini" }}</p>
+                    <p><strong>Type de boîtier :</strong> {{ site.enclosure_type|default:"Non défini" }}</p>
+                    <p><strong>BB ML :</strong> {{ site.bb_ml|default:"Non défini" }}</p>
+                    <p><strong>Portée du projet :</strong> {{ site.project_scope|default:"Non définie" }}</p>
+                    <p><strong>Zone du site :</strong> {{ site.site_area|default:"Non définie" }}</p>
+                </div>
+            </div>
+            <hr>
+            <div class="row">
+                <div class="col-12">
+                    <h5>Statut d'avancement</h5>
+                    <p><strong>Installation :</strong> <span class="badge bg-{% if site.installation %}success{% else %}warning{% endif %}">{{ site.get_installation_display }}</span></p>
+                    <p><strong>Intégration :</strong> <span class="badge bg-{% if site.integration %}success{% else %}warning{% endif %}">{{ site.get_integration_display }}</span></p>
+                    <p><strong>SRS :</strong> <span class="badge bg-{% if site.srs %}success{% else %}warning{% endif %}">{{ site.get_srs_display }}</span></p>
+                    <p><strong>IMK :</strong> <span class="badge bg-{% if site.imk %}success{% else %}warning{% endif %}">{{ site.get_imk_display }}</span></p>
+                    <p><strong>EHS 1 :</strong> <span class="badge bg-{% if site.ehs_1 %}success{% else %}warning{% endif %}">{{ site.get_ehs_1_display }}</span></p>
+                    <p><strong>EHS 2 :</strong> <span class="badge bg-{% if site.ehs_2 %}success{% else %}warning{% endif %}">{{ site.get_ehs_2_display }}</span></p>
+                    <p><strong>QA :</strong> <span class="badge bg-{% if site.qa %}success{% else %}warning{% endif %}">{{ site.get_qa_display }}</span></p>
+                    <p><strong>Statut QA :</strong> <span class="badge bg-info">{{ site.get_qa_status_display }}</span></p>
+                    <p><strong>ATP :</strong> <span class="badge bg-{% if site.atp %}success{% else %}warning{% endif %}">{{ site.get_atp_display }}</span></p>
+                </div>
+            </div>
+            <hr>
+            <p><strong>Commentaires :</strong> {{ site.comment|linebreaksbr|default:"Aucun" }}</p>
         </div>
     </div>
     

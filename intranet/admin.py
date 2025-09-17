@@ -18,6 +18,11 @@ from .models import (
     Country,
 )
 
+from .site_choices import (
+    Phase, Batch, RadioType, AntennaType, EnclosureType,
+    BBML, ProjectScope, SiteStatus, QAStatus
+)
+
 # Enregistrement des modèles de listes déroulantes
 @admin.register(JobRole)
 class JobRoleAdmin(admin.ModelAdmin):
@@ -208,10 +213,25 @@ class ProjectAdmin(admin.ModelAdmin):
 # Enregistrement du modèle Site pour pouvoir y accéder et gérer les tâches
 @admin.register(Site)
 class SiteAdmin(admin.ModelAdmin):
-    list_display = ('name', 'project', 'site_id')
-    list_filter = ('project',)
-    search_fields = ('name', 'site_id')
+    list_display = (
+        'name', 'project', 'team_lead', 'location', 'site_id',
+        'phase', 'batch', 'installation', 'integration', 'atp'
+    )
+    list_filter = ('project', 'team_lead', 'phase', 'batch')
+    search_fields = ('name', 'site_id', 'location')
     inlines = [TaskInline]
+    
+    fieldsets = (
+        ('Informations Générales', {
+            'fields': ('project', 'name', 'team_lead', 'location', 'site_id', 'site_area', 'comment')
+        }),
+        ('Détails du Projet', {
+            'fields': ('phase', 'batch', 'project_scope', 'radio_type', 'antenna_type', 'enclosure_type', 'bb_ml')
+        }),
+        ('Statut et Avancement', {
+            'fields': ('installation', 'integration', 'srs', 'imk', 'ehs_1', 'ehs_2', 'qa', 'qa_status', 'atp')
+        }),
+    )
     
 # Enregistrement du modèle Task
 @admin.register(Task)
@@ -241,3 +261,40 @@ class TaskAdmin(admin.ModelAdmin):
             ])
         return response
     export_tasks_csv.short_description = "Exporter les tâches sélectionnées en CSV"
+
+
+@admin.register(Phase)
+class PhaseAdmin(admin.ModelAdmin):
+    list_display = ['name']
+
+@admin.register(Batch)
+class BatchAdmin(admin.ModelAdmin):
+    list_display = ['name']
+
+@admin.register(RadioType)
+class RadioTypeAdmin(admin.ModelAdmin):
+    list_display = ['name']
+
+@admin.register(AntennaType)
+class AntennaTypeAdmin(admin.ModelAdmin):
+    list_display = ['name']
+
+@admin.register(EnclosureType)
+class EnclosureTypeAdmin(admin.ModelAdmin):
+    list_display = ['name']
+
+@admin.register(BBML)
+class BBMLAdmin(admin.ModelAdmin):
+    list_display = ['name']
+
+@admin.register(ProjectScope)
+class ProjectScopeAdmin(admin.ModelAdmin):
+    list_display = ['name']
+
+@admin.register(SiteStatus)
+class SiteStatusAdmin(admin.ModelAdmin):
+    list_display = ['name']
+
+@admin.register(QAStatus)
+class QAStatusAdmin(admin.ModelAdmin):
+    list_display = ['name']

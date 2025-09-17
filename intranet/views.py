@@ -33,6 +33,10 @@ from .forms import TaskUpdateForm, TaskReportForm
 from django.db import models
 from django.core.files.base import ContentFile
 
+from django.db.models import Prefetch
+from .decorators import group_required
+from .models import Site, Task
+from .constants import COORDINATOR_GROUP_NAME, COUNTRY_MANAGER_GROUP_NAME
 
 from django.db.models import ForeignKey
 from weasyprint import HTML
@@ -46,7 +50,7 @@ from django.db.models import F
 from datetime import datetime, timedelta, date
 from collections import defaultdict
 from .models import Notification
-from .forms import ProjectForm, SiteForm
+from .forms import ProjectForm
 from .models import Project, Site, Task
 from django.core.exceptions import PermissionDenied
 from .forms import TaskForm
@@ -55,7 +59,7 @@ from django.core.files.base import ContentFile
 import json # Assurez-vous d'importer ce module
 import datetime
 from django.utils import timezone 
-
+from .forms import AddSiteForm, TaskUpdateForm, TaskReportForm
 
 from .models import ProfileUpdate, User  # Assure-toi que le modèle User est importé
 from django.contrib.auth.decorators import login_required
@@ -66,8 +70,7 @@ from .decorators import hr_required, country_manager_required, coordinator_requi
 # Référence sécurisée à votre modèle d'utilisateur
 User = get_user_model()
 
-@login_required
-@hr_required
+
 @login_required
 @hr_required
 def employee_directory(request):
@@ -1122,7 +1125,7 @@ def create_project(request):
 def add_site(request, project_id):
     project = get_object_or_404(Project, id=project_id)
     if request.method == 'POST':
-        form = SiteForm(request.POST)
+        form = AddSiteForm(request.POST)
         if form.is_valid():
             # Créer l'objet Site mais ne pas le sauvegarder encore
             site = form.save(commit=False)
@@ -1136,7 +1139,7 @@ def add_site(request, project_id):
                 for error in errors:
                     messages.error(request, f"Erreur sur le champ '{field}': {error}")
     else:
-        form = SiteForm()
+        form = AddSiteForm()
 
     context = {
         'project': project,
@@ -1435,13 +1438,13 @@ def edit_site(request, site_id):
     if request.user != site.project.coordinator:
         raise PermissionDenied("Vous n'avez pas accès à cette ressource")
     if request.method == 'POST':
-        form = SiteForm(request.POST, instance=site)
+        form = AddSiteForm(request.POST, instance=site)
         if form.is_valid():
             form.save()
             messages.success(request, "Site mis à jour avec succès.")
             return redirect('site_detail', site_id=site.id)
     else:
-        form = SiteForm(instance=site)
+        form = AddSiteForm(instance=site)
     return render(request, 'intranet/edit_site.html', {'form': form, 'site': site})
 
 from django.http import HttpResponse
@@ -1494,23 +1497,17 @@ def team_lead_sites(request):
 @user_passes_test(lambda u: u.groups.filter(name__in=['Coordinateur de Projet', 'Country Manager']).exists())
 def all_sites_view(request):
     """Vue pour voir tous les sites (Coordinateurs et Country Managers)"""
-    sites = Site.objects.all().select_related('project', 'project__coordinator')
-    
-    # Filtrage par projet si spécifié
-    project_id = request.GET.get('project')
-    if project_id:
-        sites = sites.filter(project_id=project_id)
-    
-    # Filtrage par Team Lead si spécifié
-    team_lead_id = request.GET.get('team_lead')
-    if team_lead_id:
-        sites = sites.filter(tasks__assigned_to_id=team_lead_id).distinct()
+    sites_list = Site.objects.all().order_by('name')
+
+    # Pour un affichage plus efficace de la progression des tâches
+    # On peut optimiser la requête en pré-calculant la progression ici si nécessaire.
+    # Pour le moment, nous passons simplement tous les sites.
     
     context = {
-        'sites': sites,
-        'projects': Project.objects.all(),
-        'team_leads': User.objects.filter(groups__name='Team Lead'),
-        'title': 'Tous les Sites - Vue Management'
+        'sites': sites_list,
+        'title': 'Tableau de bord global des sites',
+        'is_coordinator': request.user.groups.filter(name=COORDINATOR_GROUP_NAME).exists(),
+        'is_country_manager': request.user.groups.filter(name=COUNTRY_MANAGER_GROUP_NAME).exists(),
     }
     return render(request, 'intranet/all_sites_view.html', context)
 

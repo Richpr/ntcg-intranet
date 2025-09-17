@@ -354,27 +354,21 @@ class ProjectForm(forms.ModelForm):
             Submit('submit', 'Créer le projet', css_class='btn-primary mt-3')
         )
 
-class SiteForm(forms.ModelForm):
+class AddSiteForm(forms.ModelForm):
     class Meta:
         model = Site
-        # Les champs 'description', 'status' et 'site_type' sont retirés.
-        # Le champ 'team_lead' est ajouté.
-        fields = ['name', 'location', 'site_id', 'project', 'team_lead']
-
+        fields = [
+            'name', 'team_lead', 'location', 'site_id', 'site_area',
+            'phase', 'batch', 'project_scope', 'radio_type', 'antenna_type',
+            'enclosure_type', 'bb_ml', 'installation', 'integration', 'srs',
+            'imk', 'ehs_1', 'ehs_2', 'qa', 'qa_status', 'atp', 'comment'
+        ]
+        widgets = {
+            'comment': forms.Textarea(attrs={'rows': 4}),
+        }
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_method = 'post'
-        self.helper.layout = Layout(
-            'name',
-            'location',
-            'site_id',
-            'project',
-            Field('team_lead', css_class='form-control'),
-            Submit('submit', 'Ajouter le site', css_class='btn-primary mt-3')
-        )
-
-        # Filtrez les utilisateurs pour n'afficher que ceux du groupe "Team Lead"
         try:
             team_lead_group = Group.objects.get(name=TEAM_LEAD_GROUP_NAME)
             self.fields['team_lead'].queryset = User.objects.filter(groups=team_lead_group).order_by('last_name')
